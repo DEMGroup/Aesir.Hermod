@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32407.343
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aesir.Hermod", "Aesir.Hermod\Aesir.Hermod.csproj", "{54F60194-3DB7-4EB8-837D-5EE0C149B209}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aesir.Hermod.Sample", "Aesir.Hermod.Sample\Aesir.Hermod.Sample.csproj", "{CA06B2B4-466A-459F-B9DB-A4C9CF8AABBC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{54F60194-3DB7-4EB8-837D-5EE0C149B209}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54F60194-3DB7-4EB8-837D-5EE0C149B209}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54F60194-3DB7-4EB8-837D-5EE0C149B209}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54F60194-3DB7-4EB8-837D-5EE0C149B209}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA06B2B4-466A-459F-B9DB-A4C9CF8AABBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA06B2B4-466A-459F-B9DB-A4C9CF8AABBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA06B2B4-466A-459F-B9DB-A4C9CF8AABBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA06B2B4-466A-459F-B9DB-A4C9CF8AABBC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {19D8CDEC-2F41-4787-8C8F-23B4D7248C12}
+	EndGlobalSection
+EndGlobal
