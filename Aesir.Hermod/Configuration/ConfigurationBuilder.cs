@@ -1,11 +1,10 @@
-﻿using Aesir.Hermod.Bus.Configuration;
+﻿using Aesir.Hermod.Bus.Buses;
+using Aesir.Hermod.Bus.Configuration;
 using Aesir.Hermod.Bus.Enums;
 using Aesir.Hermod.Bus.Interfaces;
 using Aesir.Hermod.Configuration.Interfaces;
 using Aesir.Hermod.Consumers;
 using Aesir.Hermod.Consumers.Interfaces;
-using Aesir.Hermod.Consumers.Models;
-using Aesir.Hermod.Exceptions;
 
 namespace Aesir.Hermod.Configuration;
 
@@ -14,34 +13,28 @@ namespace Aesir.Hermod.Configuration;
 /// </summary>
 public class ConfigurationBuilder : IConfigurationBuilder
 {
-    private readonly List<EndpointConsumer> _consumers = new();
-    internal BusOptions? BusOptions { get; set; }
+    private readonly EndpointConsumerFactory _endpointConsumerFactory;
+    internal BusOptions BusOptions { get; set; } = new BusOptions();
+
+    public ConfigurationBuilder()
+    {
+        _endpointConsumerFactory = new EndpointConsumerFactory();
+    }
 
     /// <summary>
     /// Configures the RabbitMQ connection.
     /// </summary>
     /// <param name="configure"></param>
-    public void ConfigureHost(Action<BusOptions> configure)
-    {
-        var busOptions = new BusOptions();
-        configure.Invoke(busOptions);
-        BusOptions = busOptions;
-    }
+    public void ConfigureHost(Action<BusOptions> configure) => configure.Invoke(BusOptions);
 
-    internal IMessagingBus? ConfigureBus(IServiceProvider sp)
-    {
-
-        return null;
-    }
+    internal IMessagingBus ConfigureBus(IServiceProvider sp) => new RabbitMqBus(BusOptions, _endpointConsumerFactory, sp);
 
     /// <inheritdoc/>
     public void ConsumeQueue(string queue, Action<IConsumerRegistry> configure)
     {
         var consumerFac = new ConsumerRegistry();
         configure.Invoke(consumerFac);
-        if (_consumers.Any(x => x.RoutingKey == queue && x.EndpointType == EndpointType.Queue))
-            throw new ConfigurationException($"Consumers for endpoint {queue} have already been configured.");
-        _consumers.Add(new EndpointConsumer(queue, EndpointType.Queue, consumerFac));
+        _endpointConsumerFactory.Add(queue, EndpointType.Queue, consumerFac);
     }
 
     /// <inheritdoc/>
@@ -49,8 +42,6 @@ public class ConfigurationBuilder : IConfigurationBuilder
     {
         var consumerFac = new ConsumerRegistry();
         configure.Invoke(consumerFac);
-        if (_consumers.Any(x => x.RoutingKey == exchange && x.EndpointType == EndpointType.Queue))
-            throw new ConfigurationException($"Consumers for endpoint {exchange} have already been configured.");
-        _consumers.Add(new EndpointConsumer(exchange, EndpointType.Queue, consumerFac));
+        _endpointConsumerFactory.Add(exchange, EndpointType.Exchange, consumerFac);
     }
 }
