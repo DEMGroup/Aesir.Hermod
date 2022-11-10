@@ -17,4 +17,6 @@ internal class EndpointConsumerFactory : IEndpointConsumerFactory
 
     public EndpointConsumer? Get(string queue, EndpointType type)
         => _consumers.Where(x => x.RoutingKey == queue && x.EndpointType == type).FirstOrDefault();
+
+    public IEnumerable<(string, EndpointType)> GetEndpoints() => _consumers.Select(x => (x.RoutingKey, x.EndpointType));
 }

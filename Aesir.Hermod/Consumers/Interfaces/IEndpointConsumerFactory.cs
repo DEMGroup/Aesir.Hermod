@@ -7,4 +7,5 @@ internal interface IEndpointConsumerFactory
 {
     void Add(string queue, EndpointType type, ConsumerRegistry registry);
     EndpointConsumer? Get(string queue, EndpointType type);
+    IEnumerable<(string, EndpointType)> GetEndpoints();
 }

@@ -1,6 +1,8 @@
-﻿namespace Aesir.Hermod.Messages.Interfaces;
+﻿using RabbitMQ.Client.Events;
+
+namespace Aesir.Hermod.Messages.Interfaces;
 
 internal interface IMessageReceiver
 {
-    IMessageInfo ReceiveMessage();
+    void CreateConsumer(string queue);
 }
