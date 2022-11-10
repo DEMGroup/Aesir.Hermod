@@ -9,11 +9,19 @@ using Aesir.Hermod.Exceptions;
 
 namespace Aesir.Hermod.Configuration;
 
+/// <summary>
+/// Used in the configuration pipeline to register consumers and create the <see cref="IMessagingBus"/>.
+/// </summary>
 public class ConfigurationBuilder : IConfigurationBuilder
 {
     private readonly List<EndpointConsumer> _consumers = new();
     internal BusOptions? BusOptions { get; set; }
-    public void Host(Action<BusOptions> configure)
+
+    /// <summary>
+    /// Configures the RabbitMQ connection.
+    /// </summary>
+    /// <param name="configure"></param>
+    public void ConfigureHost(Action<BusOptions> configure)
     {
         var busOptions = new BusOptions();
         configure.Invoke(busOptions);
@@ -25,16 +33,18 @@ public class ConfigurationBuilder : IConfigurationBuilder
         return null;
     }
 
+    /// <inheritdoc/>
     public void ConsumeQueue(string queue, Action<IConsumerFactory> configure)
     {
-        var consumerFac = new ConsumerFactory(queue);
+        var consumerFac = new ConsumerFactory();
         configure.Invoke(consumerFac);
         RegisterConsumers(consumerFac, queue, EndpointType.Queue);
     }
 
+    /// <inheritdoc/>
     public void ConsumeExchange(string exchange, Action<IConsumerFactory> configure)
     {
-        var consumerFac = new ConsumerFactory(exchange);
+        var consumerFac = new ConsumerFactory();
         configure.Invoke(consumerFac);
         RegisterConsumers(consumerFac, exchange, EndpointType.Exchange);
     }

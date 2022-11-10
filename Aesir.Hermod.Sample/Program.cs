@@ -7,7 +7,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     {
         services.UseHermod(conf =>
         {
-            conf.Host(opts =>
+            conf.ConfigureHost(opts =>
             {
                 opts.Host = "localhost";
                 opts.Port = 5672;
