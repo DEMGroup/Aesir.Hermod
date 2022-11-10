@@ -20,12 +20,12 @@ public interface IConfigurationBuilder
     /// </summary>
     /// <param name="queue"></param>
     /// <param name="configure"></param>
-    void ConsumeQueue(string queue, Action<IConsumerFactory> configure);
+    void ConsumeQueue(string queue, Action<IConsumerRegistry> configure);
 
     /// <summary>
     /// Registers an <see cref="IConsumer{T}"/> to be used for the specified exchange.
     /// </summary>
     /// <param name="queue"></param>
     /// <param name="configure"></param>
-    void ConsumeExchange(string queue, Action<IConsumerFactory> configure);
+    void ConsumeExchange(string queue, Action<IConsumerRegistry> configure);
 }

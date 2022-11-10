@@ -30,39 +30,27 @@ public class ConfigurationBuilder : IConfigurationBuilder
 
     internal IMessagingBus? ConfigureBus(IServiceProvider sp)
     {
+
         return null;
     }
 
     /// <inheritdoc/>
-    public void ConsumeQueue(string queue, Action<IConsumerFactory> configure)
+    public void ConsumeQueue(string queue, Action<IConsumerRegistry> configure)
     {
-        var consumerFac = new ConsumerFactory();
+        var consumerFac = new ConsumerRegistry();
         configure.Invoke(consumerFac);
-        RegisterConsumers(consumerFac, queue, EndpointType.Queue);
+        if (_consumers.Any(x => x.RoutingKey == queue && x.EndpointType == EndpointType.Queue))
+            throw new ConfigurationException($"Consumers for endpoint {queue} have already been configured.");
+        _consumers.Add(new EndpointConsumer(queue, EndpointType.Queue, consumerFac));
     }
 
     /// <inheritdoc/>
-    public void ConsumeExchange(string exchange, Action<IConsumerFactory> configure)
+    public void ConsumeExchange(string exchange, Action<IConsumerRegistry> configure)
     {
-        var consumerFac = new ConsumerFactory();
+        var consumerFac = new ConsumerRegistry();
         configure.Invoke(consumerFac);
-        RegisterConsumers(consumerFac, exchange, EndpointType.Exchange);
-    }
-
-    private void RegisterConsumers(ConsumerFactory factory, string routingKey, EndpointType type)
-    {
-        if (!factory.Consumers.Any()) return;
-        var endpoint = _consumers.Where(x => x.RoutingKey == routingKey && x.EndpointType == type).FirstOrDefault();
-        if (endpoint == null)
-        {
-            endpoint = new EndpointConsumer(routingKey, type, new ConsumerRegistry());
-            _consumers.Add(endpoint);
-        }
-        foreach (var consumer in factory.Consumers)
-        {
-            var added = endpoint.Registry.TryAdd(consumer);
-            if (!added)
-                throw new ConfigurationException($"Failed to add consumer of type {consumer.Name}.");
-        }
+        if (_consumers.Any(x => x.RoutingKey == exchange && x.EndpointType == EndpointType.Queue))
+            throw new ConfigurationException($"Consumers for endpoint {exchange} have already been configured.");
+        _consumers.Add(new EndpointConsumer(exchange, EndpointType.Queue, consumerFac));
     }
 }

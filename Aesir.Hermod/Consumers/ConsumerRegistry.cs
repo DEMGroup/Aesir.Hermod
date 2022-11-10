@@ -1,4 +1,5 @@
 ﻿using Aesir.Hermod.Consumers.Interfaces;
+using Aesir.Hermod.Exceptions;
 using Aesir.Hermod.Extensions;
 using System.Collections.ObjectModel;
 
@@ -8,7 +9,18 @@ internal class ConsumerRegistry : IConsumerRegistry
 {
     private readonly List<Type> _consumers = new();
     public ReadOnlyCollection<Type> Consumers { get => _consumers.AsReadOnly(); }
-    public bool TryAdd(Type type)
+
+    public void RegisterConsumer(Type type)
+    {
+        if (!type.ImplementsGenericInterface(typeof(IConsumer<>)))
+            throw new ConfigurationException($"Consumer must implement interface {typeof(IConsumer<>).Name}");
+
+        var success = TryAdd(type);
+        if(!success)
+            throw new ConfigurationException($"Error when adding type {type.Name}");
+    }
+
+    internal bool TryAdd(Type type)
     {
         if (!type.ImplementsGenericInterface(typeof(IConsumer<>))) return false;
         if (_consumers.Any(x => x == type)) return false;
@@ -17,7 +29,7 @@ internal class ConsumerRegistry : IConsumerRegistry
         return true;
     }
 
-    public bool TryGet<T>(out Type? consumer) where T : class
+    internal bool TryGet<T>(out Type? consumer) where T : class
     {
         consumer = null;
         if (!typeof(T).ImplementsGenericInterface(typeof(IConsumer<>))) return false;
