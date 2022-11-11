@@ -50,7 +50,7 @@ internal class MessageReceiver : IMessageReceiver
                 _messagingBus.GetChannel().ExchangeDeclare(route, ExchangeType.Fanout, true, true);
                 var queueName = _messagingBus.GetChannel().QueueDeclare().QueueName;
                 _messagingBus.GetChannel().QueueBind(queueName, route, "");
-                CreateConsumer(route);
+                CreateConsumer(queueName);
             }
         }
 
