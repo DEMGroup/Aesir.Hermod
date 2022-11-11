@@ -29,6 +29,10 @@ internal class ConsumerRegistry : IConsumerRegistry
         return true;
     }
 
+    internal Type? Find(string consumer) => _consumers.Where(x => GetParamType(x)?.Name == consumer).FirstOrDefault();
+
+    private static Type? GetParamType(Type method) => method.GetInterfaces().FirstOrDefault()?.GenericTypeArguments.FirstOrDefault();
+
     internal bool TryGet<T>(out Type? consumer) where T : class
     {
         consumer = null;

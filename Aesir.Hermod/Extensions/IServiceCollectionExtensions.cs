@@ -28,7 +28,10 @@ public static class IServiceCollectionExtensions
         var builder = new ConfigurationBuilder();
         configure?.Invoke(builder);
 
-        services.AddSingleton(sp => builder.ConfigureBus(sp));
+        services.AddSingleton(sp =>
+        {
+            return builder.ConfigureBus(sp);
+        });
         return services;
     }
 }

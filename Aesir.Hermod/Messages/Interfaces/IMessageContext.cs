@@ -9,5 +9,7 @@ public interface IMessageContext<T> where T : IMessage
     /// <summary>
     /// The message received by the client
     /// </summary>
-    T Message { get; }
+    T? Message { get; }
+
+    void Respond();
 }

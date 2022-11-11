@@ -6,7 +6,7 @@ namespace Aesir.Hermod.Consumers.Interfaces;
 /// Contains a consume method for processing a single message type
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public interface IConsumer<T> where T : IMessage
+public interface IConsumer<T> where T :  IMessage
 {
     /// <summary>
     /// Called when a message of the specified <see cref="IMessage"/> type is received.

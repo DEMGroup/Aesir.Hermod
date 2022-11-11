@@ -32,10 +32,12 @@ internal class RabbitMqBus : IMessagingBus
         _messageReceiver = new MessageReceiver(_model, endpointConsumerFac, sp);
         _messageProducer = new MessageProducer(_model, replyQueue);
 
-        RegisterEndpoints(replyQueue, endpointConsumerFac.GetEndpoints());
+        RegisterEndpoints(endpointConsumerFac.GetEndpoints());
     }
 
-    private void RegisterEndpoints(string replyQueue, IEnumerable<(string, EndpointType)> endpoints)
+    public void Publish<T>(T message, string? exchange, string? routingKey) where T : IMessage => _messageProducer.Publish(message, exchange, routingKey);
+
+    private void RegisterEndpoints(IEnumerable<(string, EndpointType)> endpoints)
     {
         foreach (var (route, type) in endpoints)
         {
@@ -52,7 +54,5 @@ internal class RabbitMqBus : IMessagingBus
                 _messageReceiver.CreateConsumer(route);
             }
         }
-
-        _model.QueueDeclare(replyQueue, true, true, true);
     }
 }
