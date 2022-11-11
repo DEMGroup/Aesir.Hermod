@@ -8,7 +8,6 @@ using Aesir.Hermod.Publishers.Models;
 using Microsoft.Extensions.DependencyInjection;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -58,8 +57,10 @@ internal class MessageReceiver : IMessageReceiver
     private void ReceiveMessage(object? sender, BasicDeliverEventArgs e)
     {
         var res = _messagingBus.GetExpectedResponse(e.BasicProperties.CorrelationId);
-        if (res == null) ProcessMessage(e);
-        else ProcessResult(e, res);
+
+        if (res != null) ProcessResult(e, res);
+        else if (e.RoutingKey != "amq.rabbitmq.reply-to") ProcessMessage(e);
+        else return;
     }
 
     private void ProcessResult(BasicDeliverEventArgs e, ExpectedResponse response)
@@ -71,6 +72,8 @@ internal class MessageReceiver : IMessageReceiver
             if (bodyMsg == null) return;
 
             var res = JsonSerializer.Deserialize(bodyMsg.Message, response.Type);
+            if (res == null) return;
+
             response.Action(res);
         }
         catch
@@ -108,7 +111,7 @@ internal class MessageReceiver : IMessageReceiver
 
             var obj = Activator.CreateInstance(constructedCtx, new object[] { msg, e, _serviceProvider.GetRequiredService<IMessageProducer>() });
             var instance = ActivatorUtilities.CreateInstance(_serviceProvider, consumerMethod);
-            var response = method.Invoke(instance, new List<object> { obj! }.ToArray());
+            method.Invoke(instance, new List<object> { obj! }.ToArray());
         }
         catch
         {

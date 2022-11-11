@@ -10,6 +10,5 @@ public interface IMessageContext<T> where T : IMessage
     /// The message received by the client
     /// </summary>
     T? Message { get; }
-
     void Respond<TResult>(TResult message) where TResult : IMessageResult<T>;
 }
