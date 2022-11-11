@@ -11,12 +11,20 @@ using System.Text.Json;
 
 namespace Aesir.Hermod.Publishers;
 
+/// <summary>
+/// Contains all methods for sending messages
+/// </summary>
 public class MessageProducer : IMessageProducer
 {
     private readonly string _replyQueue;
     private readonly TimeSpan _timeout;
     private readonly IMessagingBus _messagingBus;
 
+    /// <summary>
+    /// Creates a new instance of the <see cref="MessageProducer"/> class.
+    /// </summary>
+    /// <param name="sp"></param>
+    /// <param name="timeout"></param>
     public MessageProducer(IServiceProvider sp, TimeSpan timeout)
     {
         _messagingBus = sp.GetRequiredService<IMessagingBus>();
@@ -33,12 +41,15 @@ public class MessageProducer : IMessageProducer
         return props;
     }
 
+    /// <inheritdoc/>
     public void SendToExchange<T>(T message, string exchange) where T : IMessage
         => Send(message, exchange, "");
 
+    /// <inheritdoc/>
     public void Send<T>(T message, string queue) where T : IMessage
         => Send(message, null, queue);
 
+    /// <inheritdoc/>
     public Task<TResult> SendWithResponseAsync<TResult, T>(T message, string? queue) where T : IMessage where TResult : IMessageResult<T>
     {
         var correlationId = Send(message, null, queue);
@@ -73,6 +84,7 @@ public class MessageProducer : IMessageProducer
         return props.CorrelationId;
     }
 
+    /// <inheritdoc/>
     public void Respond<TResult, T>(TResult message, string correlationId, string replyTo)
         where T : IMessage
         where TResult : IMessageResult<T>
@@ -84,8 +96,6 @@ public class MessageProducer : IMessageProducer
 
         var msg = JsonSerializer.Serialize(msgWrapper);
         var msgBytes = Encoding.UTF8.GetBytes(msg);
-
-        var props = CreateProperties();
 
         _messagingBus.GetChannel().BasicPublish(
             exchange: "",

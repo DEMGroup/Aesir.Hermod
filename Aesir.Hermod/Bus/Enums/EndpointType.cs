@@ -1,6 +1,6 @@
 ﻿namespace Aesir.Hermod.Bus.Enums;
 
-public enum EndpointType
+internal enum EndpointType
 {
     Exchange,
     Queue

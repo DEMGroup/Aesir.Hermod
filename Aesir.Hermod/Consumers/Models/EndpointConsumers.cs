@@ -1,6 +1,10 @@
 ﻿using Aesir.Hermod.Bus.Enums;
 
 namespace Aesir.Hermod.Consumers.Models;
+
+/// <summary>
+/// Contains consumer registration information relating to a specific endpoint.
+/// </summary>
 public class EndpointConsumer
 {
     internal string RoutingKey { get; set; }

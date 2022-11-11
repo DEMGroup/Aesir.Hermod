@@ -1,14 +1,12 @@
 ﻿using Aesir.Hermod.Consumers.Interfaces;
 using Aesir.Hermod.Exceptions;
 using Aesir.Hermod.Extensions;
-using System.Collections.ObjectModel;
 
 namespace Aesir.Hermod.Consumers;
 
 internal class ConsumerRegistry : IConsumerRegistry
 {
     private readonly List<Type> _consumers = new();
-    public ReadOnlyCollection<Type> Consumers { get => _consumers.AsReadOnly(); }
 
     public void RegisterConsumer(Type type)
     {

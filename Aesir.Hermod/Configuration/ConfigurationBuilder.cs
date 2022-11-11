@@ -57,7 +57,7 @@ public class ConfigurationBuilder : IConfigurationBuilder
     /// <summary>
     /// Registers an <see cref="IConsumer{T}"/> to be used for the specified queue.
     /// </summary>
-    /// <param name="queue"></param>
+    /// <param name="exchange"></param>
     /// <param name="configure"></param>
     public void ConsumeExchange(string exchange, Action<IConsumerRegistry> configure)
     {
