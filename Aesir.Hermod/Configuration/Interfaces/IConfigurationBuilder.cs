@@ -1,6 +1,7 @@
 ﻿using Aesir.Hermod.Bus.Configuration;
 using Aesir.Hermod.Bus.Interfaces;
 using Aesir.Hermod.Consumers.Interfaces;
+using Aesir.Hermod.Publishers.Configuration;
 
 namespace Aesir.Hermod.Configuration.Interfaces;
 
@@ -14,6 +15,12 @@ public interface IConfigurationBuilder
     /// </summary>
     /// <param name="configure"></param>
     void ConfigureHost(Action<BusOptions> configure);
+
+    /// <summary>
+    /// Configures the producer specific parameters
+    /// </summary>
+    /// <param name="configure"></param>
+    void ConfigureProducer(Action<ProducerOptions> configure);
 
     /// <summary>
     /// Registers an <see cref="IConsumer{T}"/> to be used for the specified queue.

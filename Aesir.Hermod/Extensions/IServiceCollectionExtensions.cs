@@ -1,4 +1,5 @@
-﻿using Aesir.Hermod.Bus.Interfaces;
+﻿using Aesir.Hermod.Bus;
+using Aesir.Hermod.Bus.Interfaces;
 using Aesir.Hermod.Configuration;
 using Aesir.Hermod.Configuration.Interfaces;
 using Aesir.Hermod.Exceptions;
@@ -24,14 +25,14 @@ public static class IServiceCollectionExtensions
         if (services.Any(x => x.ServiceType == typeof(IMessagingBus)))
             throw new ConfigurationException($"{nameof(UseHermod)}() has already been called and can only be called once.");
 
-
         var builder = new ConfigurationBuilder();
         configure?.Invoke(builder);
 
-        services.AddSingleton(sp =>
-        {
-            return builder.ConfigureBus(sp);
-        });
+        services.AddSingleton(sp => builder.ConfigureBus());
+        services.AddSingleton(sp => builder.ConfigureReceiver(sp));
+        services.AddSingleton(sp => builder.ConfigureProducer(sp));
+
+        services.AddHostedService<BusWorker>();
         return services;
     }
 }

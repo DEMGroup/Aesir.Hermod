@@ -1,22 +1,17 @@
 ﻿using Aesir.Hermod.Bus.Configuration;
-using Aesir.Hermod.Bus.Enums;
 using Aesir.Hermod.Bus.Interfaces;
-using Aesir.Hermod.Consumers.Interfaces;
-using Aesir.Hermod.Messages;
-using Aesir.Hermod.Messages.Interfaces;
-using Aesir.Hermod.Publishers;
-using Aesir.Hermod.Publishers.Interfaces;
+using Aesir.Hermod.Exceptions;
+using Aesir.Hermod.Publishers.Models;
 using RabbitMQ.Client;
+using System.Collections.Concurrent;
 
 namespace Aesir.Hermod.Bus.Buses;
 
 internal class RabbitMqBus : IMessagingBus
 {
     private readonly IModel _model;
-    private readonly IMessageReceiver _messageReceiver;
-    private readonly IMessageProducer _messageProducer;
-
-    internal RabbitMqBus(BusOptions opts, IEndpointConsumerFactory endpointConsumerFac, IServiceProvider sp)
+    private readonly ConcurrentDictionary<string, ExpectedResponse> ExpectedResponses = new();
+    internal RabbitMqBus(BusOptions opts)
     {
         var connFactory = new ConnectionFactory
         {
@@ -27,32 +22,26 @@ internal class RabbitMqBus : IMessagingBus
             VirtualHost = opts.VHost
         };
         _model = connFactory.CreateConnection().CreateModel();
-
-        var replyQueue = _model.QueueDeclare().QueueName;
-        _messageReceiver = new MessageReceiver(_model, endpointConsumerFac, sp);
-        _messageProducer = new MessageProducer(_model, replyQueue);
-
-        RegisterEndpoints(endpointConsumerFac.GetEndpoints());
     }
 
-    public void Publish<T>(T message, string? exchange, string? routingKey) where T : IMessage => _messageProducer.Publish(message, exchange, routingKey);
+    public IModel GetChannel() => _model;
 
-    private void RegisterEndpoints(IEnumerable<(string, EndpointType)> endpoints)
+    public ExpectedResponse? GetExpectedResponse(string correlationId)
     {
-        foreach (var (route, type) in endpoints)
-        {
-            if (type == EndpointType.Queue)
-            {
-                _model.QueueDeclare(route, true, true, true);
-                _messageReceiver.CreateConsumer(route);
-            }
-            else
-            {
-                _model.ExchangeDeclare(route, ExchangeType.Fanout, true, true);
-                var queueName = _model.QueueDeclare().QueueName;
-                _model.QueueBind(queueName, route, "");
-                _messageReceiver.CreateConsumer(route);
-            }
-        }
+        if (!ExpectedResponses.ContainsKey(correlationId)) return null;
+        return ExpectedResponses[correlationId];
+    }
+
+    public void RegisterResponseExpected<T>(string correlationId, Action<object> func, Type resultType)
+    {
+        if (ExpectedResponses.ContainsKey(correlationId))
+            throw new MessagePublishException($"A response is already expected for correlation ID {correlationId}, collision detected.");
+        ExpectedResponses.TryAdd(correlationId, new ExpectedResponse(func, resultType));
+    }
+
+    public void RemoveCorrelationCallback(string correlationId)
+    {
+        if (!ExpectedResponses.ContainsKey(correlationId)) return;
+        ExpectedResponses.TryRemove(correlationId, out _);
     }
 }

@@ -1,10 +1,14 @@
 ﻿using Aesir.Hermod.Bus.Enums;
+using Aesir.Hermod.Bus.Interfaces;
 using Aesir.Hermod.Consumers.Interfaces;
 using Aesir.Hermod.Messages.Interfaces;
 using Aesir.Hermod.Models;
+using Aesir.Hermod.Publishers.Interfaces;
+using Aesir.Hermod.Publishers.Models;
 using Microsoft.Extensions.DependencyInjection;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -12,24 +16,70 @@ namespace Aesir.Hermod.Messages;
 
 internal class MessageReceiver : IMessageReceiver
 {
-    private readonly IModel _model;
+    private readonly IMessagingBus _messagingBus;
     private readonly IEndpointConsumerFactory _consumerFactory;
     private readonly IServiceProvider _serviceProvider;
-    public MessageReceiver(IModel model, IEndpointConsumerFactory consumers, IServiceProvider sp)
+    public MessageReceiver(IEndpointConsumerFactory consumers, IServiceProvider sp)
     {
-        _model = model;
+        _messagingBus = sp.GetRequiredService<IMessagingBus>();
         _consumerFactory = consumers;
         _serviceProvider = sp;
+        RegisterEndpoints(consumers.GetEndpoints());
     }
 
     public void CreateConsumer(string queue)
     {
-        var consumer = new EventingBasicConsumer(_model);
+        var consumer = new EventingBasicConsumer(_messagingBus.GetChannel());
         consumer.Received += ReceiveMessage;
-        _model.BasicConsume(queue, false, consumer);
+        _messagingBus.GetChannel().BasicConsume(queue, true, consumer);
+    }
+
+    private void RegisterEndpoints(IEnumerable<(string, EndpointType)> endpoints)
+    {
+        foreach (var (route, type) in endpoints)
+        {
+            if (type == EndpointType.Queue)
+            {
+                _messagingBus.GetChannel().QueueDeclare(route, true, false, true);
+                CreateConsumer(route);
+            }
+            else
+            {
+                _messagingBus.GetChannel().ExchangeDeclare(route, ExchangeType.Fanout, true, true);
+                var queueName = _messagingBus.GetChannel().QueueDeclare().QueueName;
+                _messagingBus.GetChannel().QueueBind(queueName, route, "");
+                CreateConsumer(route);
+            }
+        }
+
+        CreateConsumer("amq.rabbitmq.reply-to");
     }
 
     private void ReceiveMessage(object? sender, BasicDeliverEventArgs e)
+    {
+        var res = _messagingBus.GetExpectedResponse(e.BasicProperties.CorrelationId);
+        if (res == null) ProcessMessage(e);
+        else ProcessResult(e, res);
+    }
+
+    private void ProcessResult(BasicDeliverEventArgs e, ExpectedResponse response)
+    {
+        try
+        {
+            var bodyMsgStr = Encoding.UTF8.GetString(e.Body.ToArray());
+            var bodyMsg = JsonSerializer.Deserialize<MessageWrapper>(bodyMsgStr);
+            if (bodyMsg == null) return;
+
+            var res = JsonSerializer.Deserialize(bodyMsg.Message, response.Type);
+            response.Action(res);
+        }
+        catch
+        {
+            // Handle errors
+        }
+    }
+
+    private void ProcessMessage(BasicDeliverEventArgs e)
     {
         try
         {
@@ -39,10 +89,10 @@ internal class MessageReceiver : IMessageReceiver
 
             var bodyMsgStr = Encoding.UTF8.GetString(e.Body.ToArray());
             var bodyMsg = JsonSerializer.Deserialize<MessageWrapper>(bodyMsgStr);
-            if(bodyMsg == null) return;
+            if (bodyMsg == null) return;
 
             var consumerMethod = consumer.Registry.Find(bodyMsg.Type);
-            if(consumerMethod == null) return;
+            if (consumerMethod == null) return;
 
             var method = consumerMethod.GetMethod(nameof(IConsumer<IMessage>.Consume));
             if (method == null) return;
@@ -56,7 +106,7 @@ internal class MessageReceiver : IMessageReceiver
             var ctxType = typeof(MessageContext<>);
             var constructedCtx = ctxType.MakeGenericType(parameter);
 
-            var obj = Activator.CreateInstance(constructedCtx, new object[] { msg, e });
+            var obj = Activator.CreateInstance(constructedCtx, new object[] { msg, e, _serviceProvider.GetRequiredService<IMessageProducer>() });
             var instance = ActivatorUtilities.CreateInstance(_serviceProvider, consumerMethod);
             var response = method.Invoke(instance, new List<object> { obj! }.ToArray());
         }
