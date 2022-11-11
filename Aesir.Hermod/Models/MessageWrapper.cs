@@ -8,12 +8,12 @@ public class MessageWrapper
     /// <summary>
     /// Serialised message
     /// </summary>
-    public string Message { get; set; } = null!;
+    public string? Message { get; set; }
 
     /// <summary>
     /// The type of the serialized message
     /// </summary>
-    public string Type { get; set; } = null!;
+    public string? Type { get; set; }
 
     /// <summary>
     /// Creates a new instance of the <see cref="MessageWrapper"/> class.

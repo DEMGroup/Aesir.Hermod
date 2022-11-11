@@ -8,6 +8,7 @@ using Aesir.Hermod.Publishers.Models;
 using Microsoft.Extensions.DependencyInjection;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -18,8 +19,10 @@ internal class MessageReceiver : IMessageReceiver
     private readonly IMessagingBus _messagingBus;
     private readonly IEndpointConsumerFactory _consumerFactory;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IMessageProducer _producer;
     public MessageReceiver(IEndpointConsumerFactory consumers, IServiceProvider sp)
     {
+        _producer = sp.GetRequiredService<IMessageProducer>();
         _messagingBus = sp.GetRequiredService<IMessagingBus>();
         _consumerFactory = consumers;
         _serviceProvider = sp;
@@ -63,13 +66,19 @@ internal class MessageReceiver : IMessageReceiver
         else return;
     }
 
-    private void ProcessResult(BasicDeliverEventArgs e, ExpectedResponse response)
+    private static void ProcessResult(BasicDeliverEventArgs e, ExpectedResponse response)
     {
         try
         {
             var bodyMsgStr = Encoding.UTF8.GetString(e.Body.ToArray());
             var bodyMsg = JsonSerializer.Deserialize<MessageWrapper>(bodyMsgStr);
             if (bodyMsg == null) return;
+
+            if (bodyMsg.Message == null)
+            {
+                response.Action(null);
+                return;
+            }
 
             var res = JsonSerializer.Deserialize(bodyMsg.Message, response.Type);
             if (res == null) return;
@@ -92,7 +101,7 @@ internal class MessageReceiver : IMessageReceiver
 
             var bodyMsgStr = Encoding.UTF8.GetString(e.Body.ToArray());
             var bodyMsg = JsonSerializer.Deserialize<MessageWrapper>(bodyMsgStr);
-            if (bodyMsg == null) return;
+            if (bodyMsg == null || string.IsNullOrEmpty(bodyMsg.Type) || string.IsNullOrEmpty(bodyMsg.Message)) return;
 
             var consumerMethod = consumer.Registry.Find(bodyMsg.Type);
             if (consumerMethod == null) return;
@@ -112,6 +121,13 @@ internal class MessageReceiver : IMessageReceiver
             var obj = Activator.CreateInstance(constructedCtx, new object[] { msg, e, _serviceProvider.GetRequiredService<IMessageProducer>() });
             var instance = ActivatorUtilities.CreateInstance(_serviceProvider, consumerMethod);
             method.Invoke(instance, new List<object> { obj! }.ToArray());
+
+            var prop = constructedCtx.GetProperty(nameof(MessageContext<IMessage>.HasReplied), BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+            if (prop!.GetValue(obj) is bool val && !val)
+            {
+                _producer.SendEmpty(e.BasicProperties.CorrelationId);
+            }
         }
         catch
         {

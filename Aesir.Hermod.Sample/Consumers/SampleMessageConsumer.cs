@@ -4,10 +4,10 @@ using Aesir.Hermod.Sample.Messages;
 
 namespace Aesir.Hermod.Sample.Consumers;
 
-internal class TestMessageConsumer : IConsumer<TestMessage>
+internal class SampleMessageConsumer : IConsumer<SampleMessage>
 {
-    public Task Consume(IMessageContext<TestMessage> message)
+    public Task Consume(IMessageContext<SampleMessage> message)
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 }

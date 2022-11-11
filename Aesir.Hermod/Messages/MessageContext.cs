@@ -1,4 +1,5 @@
-﻿using Aesir.Hermod.Messages.Interfaces;
+﻿using Aesir.Hermod.Exceptions;
+using Aesir.Hermod.Messages.Interfaces;
 using Aesir.Hermod.Publishers.Interfaces;
 using RabbitMQ.Client.Events;
 
@@ -9,6 +10,7 @@ internal class MessageContext<T> : IMessageContext<T> where T : IMessage
     public T? Message { get; set; }
     internal string CorrelationId { get; set; }
     internal string ReplyTo { get; set; }
+    internal bool HasReplied { get; private set; }
     private readonly IMessageProducer _producer;
     public MessageContext(T message, BasicDeliverEventArgs ea, IMessageProducer producer)
     {
@@ -19,5 +21,11 @@ internal class MessageContext<T> : IMessageContext<T> where T : IMessage
     }
 
     public void Respond<TResult>(TResult message) where TResult : IMessageResult<T>
-        => _producer.Respond<TResult, T>(message, CorrelationId, ReplyTo);
+    {
+        if (HasReplied)
+            throw new MessagePublishException($"You cannot respond to the same {nameof(MessageContext<IMessage>)} more than once.");
+
+        _producer.Respond<TResult, T>(message, CorrelationId, ReplyTo);
+        HasReplied = true;
+    }
 }

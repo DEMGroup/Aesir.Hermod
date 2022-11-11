@@ -6,6 +6,7 @@ using Aesir.Hermod.Models;
 using Aesir.Hermod.Publishers.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using RabbitMQ.Client;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -50,13 +51,14 @@ public class MessageProducer : IMessageProducer
         => Send(message, null, queue);
 
     /// <inheritdoc/>
-    public Task<TResult> SendWithResponseAsync<TResult, T>(T message, string? queue) where T : IMessage where TResult : IMessageResult<T>
+    public Task<TResult?> SendWithResponseAsync<TResult, T>(T message, string? queue) where T : IMessage where TResult : IMessageResult<T>
     {
         var correlationId = Send(message, null, queue);
 
-        var tcs = new TaskCompletionSource<TResult>();
+        var tcs = new TaskCompletionSource<TResult?>();
         _messagingBus.RegisterResponseExpected<TResult>(correlationId, (obj) =>
         {
+            if (obj == null) tcs.SetResult(default);
             if (obj is TResult response) tcs.SetResult(response);
         }, typeof(TResult));
 
@@ -100,6 +102,24 @@ public class MessageProducer : IMessageProducer
         _messagingBus.GetChannel().BasicPublish(
             exchange: "",
             routingKey: replyTo,
+            basicProperties: replyProps,
+            body: msgBytes);
+    }
+
+    /// <inheritdoc/>
+    public void SendEmpty(string correlationId)
+    {
+        var replyProps = CreateProperties();
+        replyProps.CorrelationId = correlationId;
+
+        var msg = new MessageWrapper();
+
+        var msgStr = JsonSerializer.Serialize(msg);
+        var msgBytes = Encoding.UTF8.GetBytes(msgStr);
+
+        _messagingBus.GetChannel().BasicPublish(
+            exchange: "",
+            routingKey: _replyQueue,
             basicProperties: replyProps,
             body: msgBytes);
     }

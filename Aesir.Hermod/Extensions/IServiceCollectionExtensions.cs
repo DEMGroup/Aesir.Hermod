@@ -20,10 +20,10 @@ public static class IServiceCollectionExtensions
     /// <param name="configure"></param>
     /// <returns></returns>
     /// <exception cref="ConfigurationException"></exception>
-    public static IServiceCollection UseHermod(this IServiceCollection services, Action<IConfigurationBuilder>? configure = null)
+    public static IServiceCollection AddHermod(this IServiceCollection services, Action<IConfigurationBuilder>? configure = null)
     {
         if (services.Any(x => x.ServiceType == typeof(IMessagingBus)))
-            throw new ConfigurationException($"{nameof(UseHermod)}() has already been called and can only be called once.");
+            throw new ConfigurationException($"{nameof(AddHermod)}() has already been called and can only be called once.");
 
         var builder = new ConfigurationBuilder();
         configure?.Invoke(builder);
