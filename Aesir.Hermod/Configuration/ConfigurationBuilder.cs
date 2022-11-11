@@ -10,6 +10,7 @@ using Aesir.Hermod.Messages.Interfaces;
 using Aesir.Hermod.Publishers;
 using Aesir.Hermod.Publishers.Configuration;
 using Aesir.Hermod.Publishers.Interfaces;
+using RabbitMQ.Client;
 
 namespace Aesir.Hermod.Configuration;
 
@@ -36,7 +37,14 @@ public class ConfigurationBuilder : IConfigurationBuilder
     /// <param name="configure"></param>
     public void ConfigureHost(Action<BusOptions> configure) => configure.Invoke(BusOptions);
 
-    internal IMessagingBus ConfigureBus() => new RabbitMqBus(BusOptions);
+    internal IMessagingBus ConfigureBus() => new RabbitMqBus(BusOptions, new ConnectionFactory
+    {
+        UserName = BusOptions.User,
+        Password = BusOptions.Pass,
+        HostName = BusOptions.Host,
+        Port = BusOptions.Port,
+        VirtualHost = BusOptions.VHost
+    });
 
     internal IMessageReceiver ConfigureReceiver(IServiceProvider sp) => new MessageReceiver(_endpointConsumerFactory, sp);
 

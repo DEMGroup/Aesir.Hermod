@@ -11,17 +11,9 @@ internal class RabbitMqBus : IMessagingBus
 {
     private readonly IModel _model;
     private readonly ConcurrentDictionary<string, ExpectedResponse> ExpectedResponses = new();
-    internal RabbitMqBus(BusOptions opts)
+    internal RabbitMqBus(BusOptions _, IConnectionFactory connFac)
     {
-        var connFactory = new ConnectionFactory
-        {
-            UserName = opts.User,
-            Password = opts.Pass,
-            HostName = opts.Host,
-            Port = opts.Port,
-            VirtualHost = opts.VHost
-        };
-        _model = connFactory.CreateConnection().CreateModel();
+        _model = connFac.CreateConnection().CreateModel();
     }
 
     public IModel GetChannel() => _model;
