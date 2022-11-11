@@ -46,7 +46,7 @@ public class MessageProducer : IMessageProducer
         var tcs = new TaskCompletionSource<TResult>();
         _messagingBus.RegisterResponseExpected<TResult>(correlationId, (obj) =>
         {
-            if(obj is TResult response) tcs.SetResult(response);
+            if (obj is TResult response) tcs.SetResult(response);
         }, typeof(TResult));
 
         return tcs.Task.TimeoutAfter(_timeout, () => _messagingBus.RemoveCorrelationCallback(correlationId));

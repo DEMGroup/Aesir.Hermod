@@ -1,7 +1,8 @@
 ﻿using Aesir.Hermod.Bus.Enums;
 
 namespace Aesir.Hermod.Consumers.Models;
-public class EndpointConsumer {
+public class EndpointConsumer
+{
     internal string RoutingKey { get; set; }
     internal EndpointType EndpointType { get; set; }
     internal ConsumerRegistry Registry { get; set; }

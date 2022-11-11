@@ -19,7 +19,7 @@ public class BusOptions
     /// Vhost to use for the RabbitMQ instance.
     /// </summary>
     public string VHost { get; set; }
-    
+
     /// <summary>
     /// Username for logging into RabbitMQ instance.
     /// </summary>

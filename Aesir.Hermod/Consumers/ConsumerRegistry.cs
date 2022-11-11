@@ -16,7 +16,7 @@ internal class ConsumerRegistry : IConsumerRegistry
             throw new ConfigurationException($"Consumer must implement interface {typeof(IConsumer<>).Name}");
 
         var success = TryAdd(type);
-        if(!success)
+        if (!success)
             throw new ConfigurationException($"Error when adding type {type.Name}");
     }
 
