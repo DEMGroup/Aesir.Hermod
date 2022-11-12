@@ -8,10 +8,13 @@ internal static class TaskExtensions
 
         if (await Task.WhenAny(task, Task.Delay(timeout, timeoutCancellationTokenSource.Token)) == task)
         {
-            onTimeout?.Invoke();
             timeoutCancellationTokenSource.Cancel();
             return await task;
         }
-        else throw new TimeoutException($"The provided task has timed out after {timeout:hh\\:mm\\:ss}.");
+        else
+        {
+            onTimeout?.Invoke();
+            throw new TimeoutException($"The provided task has timed out after {timeout:hh\\:mm\\:ss}.");
+        }
     }
 }
