@@ -7,6 +7,7 @@
 <div align="center">
 	<i>Hermóðr (Hermod) - Messenger to the Norse gods.</i>
 </div>
+<br/>
 
 Hermod is a wrapper written for RabbitMQ to facilitate messaging on the Aesir platform.
 
