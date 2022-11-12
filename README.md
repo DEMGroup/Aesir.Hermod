@@ -19,7 +19,7 @@ services.AddHermod();
 ```
 ##### Add connection info
 ```csharp
-services.AddHermod(
+services.AddHermod(conf => 
 	conf.ConfigureHost(opts =>
             {
                 opts.Host = "localhost";
@@ -33,7 +33,7 @@ services.AddHermod(
 
 ##### Add queue consumer
 ```csharp
-services.AddHermod(
+services.AddHermod(conf => 
 	conf.ConsumeQueue("test-queue", x =>
             {
                 x.RegisterConsumer(typeof(SampleMessageConsumer));
@@ -43,7 +43,7 @@ services.AddHermod(
 
 ##### Add exchange consumer
  ```csharp
-services.AddHermod(
+services.AddHermod(conf => 
 	conf.ConsumeExchange("test-exchange", x =>
             {
                 x.RegisterConsumer(typeof(SampleMessageConsumer));
