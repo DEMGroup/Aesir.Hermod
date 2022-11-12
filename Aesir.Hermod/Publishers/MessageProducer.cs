@@ -56,7 +56,7 @@ public class MessageProducer : IMessageProducer
         var correlationId = Send(message, null, queue);
 
         var tcs = new TaskCompletionSource<TResult?>();
-        _messagingBus.RegisterResponseExpected<TResult>(correlationId, (obj) =>
+        _messagingBus.RegisterResponseExpected(correlationId, (obj) =>
         {
             if (obj == null) tcs.SetResult(default);
             if (obj is TResult response) tcs.SetResult(response);

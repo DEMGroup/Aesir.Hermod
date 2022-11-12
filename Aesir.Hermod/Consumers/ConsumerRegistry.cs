@@ -20,14 +20,12 @@ internal class ConsumerRegistry : IConsumerRegistry
 
     internal bool TryAdd(Type type)
     {
-        if (!type.ImplementsGenericInterface(typeof(IConsumer<>))) return false;
         if (_consumers.Any(x => x == type)) return false;
-
         _consumers.Add(type);
         return true;
     }
 
-    internal Type? Find(string consumer) => _consumers.Where(x => GetParamType(x)?.Name == consumer).FirstOrDefault();
+    internal Type? Find(string message) => _consumers.Where(x => GetParamType(x)?.Name == message).FirstOrDefault();
 
     private static Type? GetParamType(Type method) => method.GetInterfaces().FirstOrDefault()?.GenericTypeArguments.FirstOrDefault();
 

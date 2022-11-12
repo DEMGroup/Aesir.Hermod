@@ -12,9 +12,7 @@ internal class RabbitMqBus : IMessagingBus
     private readonly IModel _model;
     private readonly ConcurrentDictionary<string, ExpectedResponse> ExpectedResponses = new();
     internal RabbitMqBus(BusOptions _, IConnectionFactory connFac)
-    {
-        _model = connFac.CreateConnection().CreateModel();
-    }
+        => _model = connFac.CreateConnection().CreateModel();
 
     public IModel GetChannel() => _model;
 
@@ -24,7 +22,7 @@ internal class RabbitMqBus : IMessagingBus
         return ExpectedResponses[correlationId];
     }
 
-    public void RegisterResponseExpected<T>(string correlationId, Action<object?> func, Type resultType)
+    public void RegisterResponseExpected(string correlationId, Action<object?> func, Type resultType)
     {
         if (ExpectedResponses.ContainsKey(correlationId))
             throw new MessagePublishException($"A response is already expected for correlation ID {correlationId}, collision detected.");
