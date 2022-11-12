@@ -1,7 +1,12 @@
-# Aesir.Hermod
-*Hermóðr (Hermod) - Messenger to the Norse gods.*
 
-![Hermod](https://user-images.githubusercontent.com/11881500/201449784-c2cf3c06-e2a5-46bf-99f3-df56dfb4353a.png | width=50)
+# Aesir.Hermod
+<div align="center">
+	<img height="200" src="https://user-images.githubusercontent.com/11881500/201449784-c2cf3c06-e2a5-46bf-99f3-df56dfb4353a.png"/>
+</div>
+
+<div align="center">
+	<i>Hermóðr (Hermod) - Messenger to the Norse gods.</i>
+</div>
 
 Hermod is a wrapper written for RabbitMQ to facilitate messaging on the Aesir platform.
 
