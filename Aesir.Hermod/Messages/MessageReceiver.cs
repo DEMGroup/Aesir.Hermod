@@ -61,8 +61,8 @@ internal class MessageReceiver : IMessageReceiver
     {
         var res = _messagingBus.GetExpectedResponse(e.BasicProperties.CorrelationId);
 
-        if (res != null) ProcessResult(e, res);
-        else if (e.RoutingKey != "amq.rabbitmq.reply-to") ProcessMessage(e);
+        if (!e.RoutingKey.StartsWith("amq.rabbitmq.reply-to")) ProcessMessage(e);
+        else if (res != null) ProcessResult(e, res);
         else return;
     }
 
