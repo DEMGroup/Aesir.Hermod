@@ -47,7 +47,7 @@ internal class MessageReceiver : IMessageReceiver
             }
             else
             {
-                _messagingBus.GetChannel().ExchangeDeclare(route, ExchangeType.Fanout, true, true);
+                _messagingBus.GetChannel().ExchangeDeclare(route, ExchangeType.Fanout, true);
                 var queueName = _messagingBus.GetChannel().QueueDeclare().QueueName;
                 _messagingBus.GetChannel().QueueBind(queueName, route, "");
                 CreateConsumer(queueName);
