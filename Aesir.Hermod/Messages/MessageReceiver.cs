@@ -42,7 +42,7 @@ internal class MessageReceiver : IMessageReceiver
         {
             if (type == EndpointType.Queue)
             {
-                _messagingBus.GetChannel().QueueDeclare(route, true, false, true);
+                _messagingBus.GetChannel().QueueDeclare(route, true, false);
                 CreateConsumer(route);
             }
             else
