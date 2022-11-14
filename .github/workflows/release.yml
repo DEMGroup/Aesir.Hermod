@@ -1,16 +1,16 @@
 name: Publish, and release AesirEngine
 
-# on:
-#   workflow_dispatch:
-#     inputs:
-#       semver:
-#         description: "How would you bump the version (semver)? (e.g. major, minor, patch)"
-#         default: "patch"
-#         required: true
-#         type: string
-#   pull_request:
-#     branch: [main]
-#     types: [closed]
+on:
+  workflow_dispatch:
+    inputs:
+      semver:
+        description: "How would you bump the version (semver)? (e.g. major, minor, patch)"
+        default: "patch"
+        required: true
+        type: string
+  pull_request:
+    branch: [main]
+    types: [closed]
 
 jobs:
   release:
