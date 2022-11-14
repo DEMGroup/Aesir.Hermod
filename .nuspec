@@ -2,6 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>Aesir.Hermod</id>
+	<readme>docs\README.md</readme>
         <version>1.0.0</version>
         <description>A wrapper for RabbitMQ to facilitate messaging within Aesir.</description>
         <authors>DEMGroup</authors>
