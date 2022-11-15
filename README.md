@@ -37,13 +37,13 @@ services.AddHermod(builder =>
 			conf.RegisterConsumer(typeof(StateMessageConsumer));
 		});
 	
-		builder.ConsumeQueue("queue-2", x =>
+		builder.ConsumeQueue("queue-2", conf =>
 		{
 			conf.RegisterConsumer(typeof(SampleMessageConsumer));
 			conf.RegisterConsumer(typeof(StateMessageConsumer));
 		});
 			
-		builder.ConsumeExchange("exchange-1", x => 
+		builder.ConsumeExchange("exchange-1", conf => 
 		{
 			conf.RegisterConsumer(typeof(StateMessageConsumer));
 		});
@@ -72,9 +72,9 @@ services.AddHermod(builder =>
 ##### Adding a queue consumer
 ```csharp
 services.AddHermod(builder => 
-	builder.ConsumeQueue("test-queue", x =>
+	builder.ConsumeQueue("test-queue", conf =>
         {
-        	x.RegisterConsumer(typeof(SampleMessageConsumer));
+        	conf.RegisterConsumer(typeof(SampleMessageConsumer));
         });
 );
 ```
@@ -82,9 +82,9 @@ services.AddHermod(builder =>
 ##### Adding an exchange consumer
  ```csharp
 services.AddHermod(builder => 
-	builder.ConsumeExchange("test-exchange", x =>
+	builder.ConsumeExchange("test-exchange", conf =>
         {
-        	x.RegisterConsumer(typeof(SampleMessageConsumer));
+        	conf.RegisterConsumer(typeof(SampleMessageConsumer));
         });
 );
 ```
