@@ -20,6 +20,7 @@ services.AddHermod();
 
 #### Example config
 
+```csharp
 services.AddHermod(builder => 
 		builder.ConfigureHost(opts =>
 		{
@@ -52,6 +53,7 @@ services.AddHermod(builder =>
                     conf.ResponseTimeout = TimeSpan.FromSeconds(30);
                 });
 	);
+```
 
 ##### Add connection info
 ```csharp
