@@ -17,36 +17,72 @@ All configuration for Hermod happens when registering it within the dependency i
 // Where services is IServiceCollection
 services.AddHermod();
 ```
+
+#### Example config
+
+services.AddHermod(builder => 
+		builder.ConfigureHost(opts =>
+		{
+			opts.Host = "localhost";
+			opts.Port = 5672;
+			opts.VHost = "/";
+			opts.User = "guest";
+			opts.Pass = "guest";
+		});
+	
+		builder.ConsumeQueue("queue-1", conf =>
+		{
+			conf.RegisterConsumer(typeof(SampleMessageConsumer));
+			conf.RegisterConsumer(typeof(StateMessageConsumer));
+		});
+	
+		builder.ConsumeQueue("queue-2", x =>
+		{
+			conf.RegisterConsumer(typeof(SampleMessageConsumer));
+			conf.RegisterConsumer(typeof(StateMessageConsumer));
+		});
+			
+		builder.ConsumeExchange("exchange-1", x => 
+		{
+			conf.RegisterConsumer(typeof(StateMessageConsumer));
+		});
+
+		builder.ConfigureProducer(conf =>
+                {
+                    conf.ResponseTimeout = TimeSpan.FromSeconds(30);
+                });
+	);
+
 ##### Add connection info
 ```csharp
-services.AddHermod(conf => 
-	conf.ConfigureHost(opts =>
-            {
-                opts.Host = "localhost";
-                opts.Port = 5672;
-                opts.VHost = "/";
-                opts.User = "guest";
-                opts.Pass = "guest";
-            })
+services.AddHermod(builder => 
+	builder.ConfigureHost(opts =>
+	{
+		opts.Host = "localhost";
+		opts.Port = 5672;
+		opts.VHost = "/";
+		opts.User = "guest";
+		opts.Pass = "guest";
+	});
 );
 ```
 
-##### Add queue consumer
+##### Adding a queue consumer
 ```csharp
-services.AddHermod(conf => 
-	conf.ConsumeQueue("test-queue", x =>
-            {
-                x.RegisterConsumer(typeof(SampleMessageConsumer));
-            });
+services.AddHermod(builder => 
+	builder.ConsumeQueue("test-queue", x =>
+        {
+        	x.RegisterConsumer(typeof(SampleMessageConsumer));
+        });
 );
 ```
 
-##### Add exchange consumer
+##### Adding an exchange consumer
  ```csharp
-services.AddHermod(conf => 
-	conf.ConsumeExchange("test-exchange", x =>
-            {
-                x.RegisterConsumer(typeof(SampleMessageConsumer));
-            });
+services.AddHermod(builder => 
+	builder.ConsumeExchange("test-exchange", x =>
+        {
+        	x.RegisterConsumer(typeof(SampleMessageConsumer));
+        });
 );
 ```
