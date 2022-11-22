@@ -52,7 +52,7 @@ public class ConfigurationBuilder : IConfigurationBuilder
     internal IMessageProducer ConfigureProducer(IServiceProvider sp) => new MessageProducer(sp, ProducerOptions.ResponseTimeout);
 
     /// <summary>
-    /// Registers an <see cref="IConsumer{T}"/> to be used for the specified exchange.
+    /// Registers an <see cref="IConsumer{T}"/> to be used for the specified queue.
     /// </summary>
     /// <param name="queue"></param>
     /// <param name="configure"></param>
@@ -64,7 +64,22 @@ public class ConfigurationBuilder : IConfigurationBuilder
     }
 
     /// <summary>
-    /// Registers an <see cref="IConsumer{T}"/> to be used for the specified queue.
+    /// Registers an <see cref="IConsumer{T}"/> to be used for the specified queues.
+    /// </summary>
+    /// <param name="queues"></param>
+    /// <param name="configure"></param>
+    public void ConsumeQueue(IEnumerable<string> queues, Action<IConsumerRegistry> configure)
+    {
+        foreach (var queue in queues)
+        {
+            var consumerFac = new ConsumerRegistry();
+            configure.Invoke(consumerFac);
+            _endpointConsumerFactory.Add(queue, EndpointType.Queue, consumerFac);
+        }
+    }
+
+    /// <summary>
+    /// Registers an <see cref="IConsumer{T}"/> to be used for the specified exchange.
     /// </summary>
     /// <param name="exchange"></param>
     /// <param name="configure"></param>
