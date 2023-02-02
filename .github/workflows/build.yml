@@ -2,19 +2,47 @@ name: Build and test the engine
 
 on:
   push:
+    branches-ignore:
+      - main
+  workflow_call:
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Setup .NET Core SDK 6.0.x
-        uses: actions/setup-dotnet@v2
+        uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
+      - uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          # Look to see if there is a cache hit for the corresponding requirements file
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
       - name: Install dependencies
         run: dotnet restore -r linux-x64
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build -v=q --configuration Release --no-restore
       - name: Test
-        run: dotnet test --no-restore --verbosity normal
+        run: dotnet test --no-restore --logger trx --results-directory TestResults --verbosity normal
+      - name: Check Test File Exists
+        if: success() || failure()
+        id: hasTests
+        run: |
+          if compgen -G "TestResults/*.trx" > /dev/null; then
+            hasTest=true
+          else
+            hasTest=false
+          fi
+          echo "hasTests=$hasTest" >> $GITHUB_OUTPUT
+      - name: Test Reporter
+        if: ${{ steps.hasTests.outputs.hasTests == 'true' }}
+        uses: phoenix-actions/test-reporting@v10
+        with:
+          name: ${{github.repository}} Test Results
+          path: TestResults/*.trx
+          reporter: dotnet-trx
+          output-to: step-summary
