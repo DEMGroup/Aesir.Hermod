@@ -57,7 +57,6 @@ jobs:
           NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
         run: |
           dotnet nuget push Aesir.Hermod.${{needs.bump-version.outputs.new_version}}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${NUGET_TOKEN}
-          dotnet nuget push Aesir.Hermod.${{needs.bump-version.outputs.new_version}}.snupkg --source https://api.nuget.org/v3/index.json --api-key ${NUGET_TOKEN}
 
   create-new-github-release:
     needs: [release, bump-version]
