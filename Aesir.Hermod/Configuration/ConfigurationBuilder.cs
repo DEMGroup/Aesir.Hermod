@@ -44,7 +44,9 @@ public class ConfigurationBuilder : IConfigurationBuilder
             Password = BusOptions.Pass,
             HostName = BusOptions.Host,
             Port = BusOptions.Port,
-            VirtualHost = BusOptions.VHost
+            VirtualHost = BusOptions.VHost,
+            AutomaticRecoveryEnabled = BusOptions.RetryConnection,
+            NetworkRecoveryInterval = TimeSpan.FromSeconds(BusOptions.RetryWaitTime)
         });
 
     internal IMessageReceiver ConfigureReceiver(IServiceProvider sp) => new MessageReceiver(_endpointConsumerFactory, sp);

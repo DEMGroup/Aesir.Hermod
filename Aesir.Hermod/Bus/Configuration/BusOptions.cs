@@ -31,6 +31,16 @@ public class BusOptions
     public string Pass { get; set; }
 
     /// <summary>
+    /// If the connection is lost, should it be retried. Default of true.
+    /// </summary>
+    public bool RetryConnection { get; set; } = true;
+
+    /// <summary>
+    /// The time in seconds between connection retry attempts. Default of 5 seconds.
+    /// </summary>
+    public int RetryWaitTime { get; set; } = 5;
+
+    /// <summary>
     /// Creates a new instance of the <see cref="BusOptions"/> class and populates the default values.
     /// </summary>
     public BusOptions()
