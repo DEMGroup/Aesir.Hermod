@@ -1,12 +1,13 @@
 ﻿using Aesir.Hermod.Bus.Interfaces;
 using Aesir.Hermod.Exceptions;
 using Aesir.Hermod.Extensions;
+using Aesir.Hermod.Logging;
 using Aesir.Hermod.Messages.Interfaces;
 using Aesir.Hermod.Models;
 using Aesir.Hermod.Publishers.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -19,6 +20,7 @@ public class MessageProducer : IMessageProducer
 {
     private readonly string _replyQueue;
     private readonly TimeSpan _timeout;
+    private readonly ILogger<MessageProducer> _logger;
     private readonly IMessagingBus _messagingBus;
 
     /// <summary>
@@ -31,6 +33,7 @@ public class MessageProducer : IMessageProducer
         _messagingBus = sp.GetRequiredService<IMessagingBus>();
         _replyQueue = "amq.rabbitmq.reply-to";
         _timeout = timeout;
+        _logger = sp.GetLogger<MessageProducer>();
     }
 
     internal IBasicProperties CreateProperties()
