@@ -25,9 +25,8 @@ public static class IServiceCollectionExtensions
         if (services.Any(x => x.ServiceType == typeof(IMessagingBus)))
             throw new ConfigurationException($"{nameof(AddHermod)}() has already been called and can only be called once.");
 
-        var builder = new ConfigurationBuilder();
+        var builder = new ConfigurationBuilder(services.BuildServiceProvider());
         configure?.Invoke(builder);
-
         services.AddSingleton(_ => builder.ConfigureBus());
         services.AddSingleton(sp => builder.ConfigureReceiver(sp));
         services.AddSingleton(sp => builder.ConfigureProducer(sp));

@@ -1,11 +1,14 @@
 ﻿using Aesir.Hermod.Bus.Enums;
 using Aesir.Hermod.Bus.Interfaces;
 using Aesir.Hermod.Consumers.Interfaces;
+using Aesir.Hermod.Exceptions;
+using Aesir.Hermod.Extensions;
 using Aesir.Hermod.Messages.Interfaces;
 using Aesir.Hermod.Models;
 using Aesir.Hermod.Publishers.Interfaces;
 using Aesir.Hermod.Publishers.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Reflection;
@@ -20,6 +23,7 @@ internal class MessageReceiver : IMessageReceiver
     private readonly IEndpointConsumerFactory _consumerFactory;
     private readonly IServiceProvider _serviceProvider;
     private readonly IMessageProducer _producer;
+    private readonly ILogger<object> _logger;
     public MessageReceiver(IEndpointConsumerFactory consumers, IServiceProvider sp)
     {
         _producer = sp.GetRequiredService<IMessageProducer>();
@@ -27,6 +31,7 @@ internal class MessageReceiver : IMessageReceiver
         _consumerFactory = consumers;
         _serviceProvider = sp;
         RegisterEndpoints(consumers.GetEndpoints());
+        _logger = sp.GetLogger<MessageReceiver>();
     }
 
     public void CreateConsumer(string queue)
@@ -91,29 +96,63 @@ internal class MessageReceiver : IMessageReceiver
         }
     }
 
+    private readonly List<string> _ignoredQueues = new List<string>();
+    private readonly List<string> _ignoredTypes = new List<string>();
     private void ProcessMessage(BasicDeliverEventArgs e)
     {
         try
         {
             var queue = string.IsNullOrEmpty(e.Exchange) ? e.RoutingKey : e.Exchange;
+            _logger.LogDebug("[Message:{messageId}] Message recieved on queue {queue}", e.BasicProperties.MessageId, queue);
+
+            if (_ignoredQueues.Contains(queue)) return;
             var consumer = _consumerFactory.Get(queue, queue == e.Exchange ? EndpointType.Exchange : EndpointType.Queue);
-            if (consumer == null) return;
+            if (consumer == null)
+            {
+                _ignoredQueues.Add(queue);
+                _logger.LogDebug("[Message:{messageId}], No consumer registered for {queue} adding to ignore.", e.BasicProperties.MessageId, queue);
+                return;
+            }
 
             var bodyMsgStr = Encoding.UTF8.GetString(e.Body.ToArray());
             var bodyMsg = JsonSerializer.Deserialize<MessageWrapper>(bodyMsgStr);
-            if (bodyMsg == null || string.IsNullOrEmpty(bodyMsg.Type) || string.IsNullOrEmpty(bodyMsg.Message)) return;
 
+            if (bodyMsg == null)
+            {
+                _logger.LogDebug("[Message:{messageId}] The deserialized message was null.", e.BasicProperties.MessageId);
+                return;
+            }
+            if (string.IsNullOrEmpty(bodyMsg.Message))
+            {
+                _logger.LogDebug("[Message:{messageId}] The message had no body content.", e.BasicProperties.MessageId);
+                return;
+            }
+            if (string.IsNullOrEmpty(bodyMsg.Type))
+            {
+                _logger.LogDebug("[Message:{messageId}] The message didn't contain a deserialization type.", e.BasicProperties.MessageId);
+                return;
+            }
+
+            if (_ignoredTypes.Contains(bodyMsg.Type)) return;
             var consumerMethod = consumer.Registry.Find(bodyMsg.Type);
-            if (consumerMethod == null) return;
+            if (consumerMethod == null)
+            {
+                _logger.LogDebug("[Message:{messageId}] No consumer found for the type of message {type} adding to ignore list.", e.BasicProperties.MessageId, bodyMsg.Type);
+                _ignoredTypes.Add(bodyMsg.Type);
+                return;
+            }
 
             var method = consumerMethod.GetMethod(nameof(IConsumer<IMessage>.Consume));
-            if (method == null) return;
+            if (method == null) 
+                throw new MessageReceiveException("Failed to get to consume method of the registered IConsumer.");
 
             var parameter = method.GetParameters().FirstOrDefault()?.ParameterType.GenericTypeArguments.FirstOrDefault();
-            if (parameter == null) return;
+            if (parameter == null) 
+                throw new MessageReceiveException("Failed to get to get the registered IMessage type for this IConsumer.");
 
             var msg = JsonSerializer.Deserialize(bodyMsg.Message, parameter);
-            if (msg == null) return;
+            if (msg == null) 
+                throw new MessageReceiveException("Failed to deserialize the IMessage.");
 
             var ctxType = typeof(MessageContext<>);
             var constructedCtx = ctxType.MakeGenericType(parameter);
@@ -129,9 +168,11 @@ internal class MessageReceiver : IMessageReceiver
                 _producer.SendEmpty(e.BasicProperties.CorrelationId);
             }
         }
-        catch
+        catch(Exception ex)
         {
-            // Figure out what should happen on error
+            _logger.LogError(ex.Message);
+            _logger.LogError(ex.StackTrace);
+            throw new MessageReceiveException(ex.Message);
         }
     }
 }
