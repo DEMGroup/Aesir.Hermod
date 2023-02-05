@@ -12,13 +12,11 @@ namespace Aesir.Hermod.Extensions;
 /// </summary>
 public static class IServiceCollectionExtensions
 {
-
     /// <summary>
     /// Configures Hermod and add its to the DI container <paramref name="services"/> and exposes configuration methods.
     /// </summary>
     /// <param name="services"></param>
     /// <param name="configure"></param>
-    /// <returns></returns>
     /// <exception cref="ConfigurationException"></exception>
     public static IServiceCollection AddHermod(this IServiceCollection services, Action<IConfigurationBuilder>? configure = null)
     {

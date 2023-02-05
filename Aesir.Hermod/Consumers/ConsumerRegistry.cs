@@ -25,7 +25,7 @@ internal class ConsumerRegistry : IConsumerRegistry
         return true;
     }
 
-    internal Type? Find(string message) => _consumers.Where(x => GetParamType(x)?.Name == message).FirstOrDefault();
+    internal Type? Find(string message) => _consumers.Find(x => GetParamType(x)?.Name == message);
 
     private static Type? GetParamType(Type method) => method.GetInterfaces().FirstOrDefault()?.GenericTypeArguments.FirstOrDefault();
 
@@ -35,7 +35,7 @@ internal class ConsumerRegistry : IConsumerRegistry
         if (!typeof(T).ImplementsGenericInterface(typeof(IConsumer<>))) return false;
 
         var type = typeof(T);
-        consumer = _consumers.Where(c => c == type).FirstOrDefault();
+        consumer = _consumers.Find(c => c == type);
         return consumer != null;
     }
 }
