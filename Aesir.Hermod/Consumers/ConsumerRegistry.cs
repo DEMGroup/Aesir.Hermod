@@ -28,14 +28,4 @@ internal class ConsumerRegistry : IConsumerRegistry
     internal Type? Find(string message) => _consumers.Find(x => GetParamType(x)?.Name == message);
 
     private static Type? GetParamType(Type method) => method.GetInterfaces().FirstOrDefault()?.GenericTypeArguments.FirstOrDefault();
-
-    internal bool TryGet<T>(out Type? consumer) where T : class
-    {
-        consumer = null;
-        if (!typeof(T).ImplementsGenericInterface(typeof(IConsumer<>))) return false;
-
-        var type = typeof(T);
-        consumer = _consumers.Find(c => c == type);
-        return consumer != null;
-    }
 }
