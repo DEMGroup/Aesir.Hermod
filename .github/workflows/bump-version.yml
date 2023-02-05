@@ -1,0 +1,82 @@
+name: Semver the version, outputs version and v_version
+
+on:
+  workflow_call:
+    inputs:
+      semver:
+        description: Semver level to bump (Possible Versions - major, minor, patch)
+        required: false
+        type: string
+    outputs:
+      new_version:
+        description: "The new semver version (sans 'v' prefix) based on the inputs.semver"
+        value: ${{ jobs.bump-version.outputs.new_version }}
+      new_version_with_v:
+        description: "The new semver version (with 'v' prefix) based on the inputs.semver"
+        value: ${{ jobs.bump-version.outputs.new_version_with_v }}
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.release-version.outputs.new_version }}
+      new_version_with_v: ${{ steps.release-version.outputs.new_version_with_v }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Get normalized release version from label or input
+        id: release-label
+        run: |
+          labels="${{ toJson(github.event.pull_request.labels.*.name) }}"
+          labels="${labels[@]}"
+          if [[ $labels =~ release\/([a-z]+) ]]; then
+            level="${BASH_REMATCH[1]}"
+          else
+            level="${{ inputs.semver }}"
+          fi
+          releaseLevel=$(echo "$releaseLevel" | tr '[:upper:]' '[:lower:]')
+          echo "releaseLevel=$level" >> $GITHUB_OUTPUT
+
+      - name: Validate inputs
+        id: valid-input
+        run: |
+          validSemver="['major', 'minor', 'patch']"
+          if ([ ${{ steps.release-label.outputs.releaseLevel == null }} == true ] || [ ${{ steps.release-label.outputs.releaseLevel == '' }} == true ] || [[ "; {validSemver[*]}" =~ "${{ steps.release-label.outputs.releaseLevel }}" ]]); then
+            echo "::error title=Invalid Semver Level::The version supplied (Input: ${{ inputs.semver }}) and (Labels: ${{ toJson(github.event.pull_request.labels.*.name) }}) are not valid semver."
+            exit 1
+          fi
+
+      - name: Add PR Comment
+        if: ${{ failure() && github.event_name == 'pull_request' }}
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ github.event.pull_request.number }},
+              owner: '${{ github.repository_owner}}',
+              repo: '${{ github.repository }}',
+              body: 'Your PR was missing both the manual run input and a release label. If you want this code included in a package you should run a manual release'
+            })
+
+      - name: Get Latest Tag
+        id: get-latest-tag
+        run: |
+          git fetch --prune --unshallow --tags
+          echo "tag=$(git tag --sort=v:refname | tail -n 1)" >> $GITHUB_OUTPUT
+
+      - name: Bump semver
+        id: bump-semver
+        run: |
+          npm i -g semver
+          semver="$(semver --increment ${{ steps.release-label.outputs.releaseLevel }} ${{ steps.get-latest-tag.outputs.tag }})"
+          echo "new_version=$semver" >> $GITHUB_OUTPUT
+
+      - name: Set usable new version
+        id: release-version
+        run: |
+          echo "new_version=${{ steps.bump-semver.outputs.new_version }}" >> $GITHUB_OUTPUT
+          echo "new_version_with_v=v${{ steps.bump-semver.outputs.new_version }}" >> $GITHUB_OUTPUT

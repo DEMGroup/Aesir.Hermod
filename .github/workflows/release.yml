@@ -1,4 +1,4 @@
-name: Publish, and release AesirEngine
+name: Publish, and release Aesir.Hermod
 
 on:
   workflow_dispatch:
@@ -13,7 +13,17 @@ on:
     types: [closed]
 
 jobs:
+  bump-version:
+    uses: ./.github/workflows/bump-version.yml
+    secrets: inherit
+    with:
+      semver: ${{ inputs.semver }}
+
+  build-and-test:
+    uses: ./.github/workflows/build.yml
+
   release:
+    needs: [build-and-test, bump-version]
     env:
       BUILD_CONFIG: "Release"
       SOLUTION: "Aesir.Hermod.sln"
@@ -22,72 +32,51 @@ jobs:
     steps:
       # get the code setup the build
       - uses: actions/checkout@v3
-      - name: fetch
-        run: |
-          git fetch --prune --unshallow --tags
-
-      # check the release label for semver (e.g. patch, major, minor)
-      # this only runs if we aren't running a release manually
-      - uses: actions-ecosystem/action-release-label@v1.2.0
-        id: release-label
-        if: ${{ github.event.pull_request.merged == true }}
-
-      # get the last version released
-      - name: Get Latest Tag
-        id: get-latest-tag
-        run: echo "::set-output name=tag::$(git tag --sort=v:refname | tail -n 1)"
-        if: ${{ steps.release-label.outputs.level != null || inputs.semver != null }}
-
-      # bump semver based on either the release/semver tag on a PR or the input of the workflow manual trigger
-      - uses: actions-ecosystem/action-bump-semver@v1
-        id: bump-semver
-        if: ${{ steps.release-label.outputs.level != null || inputs.semver != null }}
-        with:
-          current_version: ${{ steps.get-latest-tag.outputs.tag }}
-          level: ${{ steps.release-label.outputs.level || inputs.semver }}
-
-      - name: Set usable new version
-        id: strip-v
-        run: |
-          VERSION=$(echo "${{ steps.bump-semver.outputs.new_version }}" | cut -c2-)
-          echo "::set-output name=aesirhermod_version::$VERSION"
-
-      # Configure Nuget
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v1
-        with:
-          nuget-version: "latest"
-
+      
       - name: Setup .NET Core SDK 6.0.x
         uses: actions/setup-dotnet@v2.1.0
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
 
-      - name: Restore dependencies
-        run: nuget restore Aesir.Hermod/Aesir.Hermod.csproj
+      - name: Install dependencies
+        run: dotnet restore -r linux-x64 Aesir.Hermod/Aesir.Hermod.csproj
 
       - name: Build
-        run: dotnet build Aesir.Hermod/Aesir.Hermod.csproj --configuration Release /p:Version=${{steps.strip-v.outputs.aesirhermod_version}}
+        run: dotnet build -v=q Aesir.Hermod/Aesir.Hermod.csproj --configuration Release /p:Version=${{needs.bump-version.outputs.new_version}}
 
       - name: Test
-        run: dotnet test Aesir.Hermod/Aesir.Hermod.csproj --configuration Release /p:Version=${{steps.strip-v.outputs.aesirhermod_version}} --no-build
+        run: dotnet test Aesir.Hermod/Aesir.Hermod.csproj --configuration Release /p:Version=${{needs.bump-version.outputs.new_version}} --no-build
 
       # Package the build into a single nupkg
       - name: Pack
-        run: nuget pack Aesir.Hermod/Aesir.Hermod.csproj -Properties Configuration=Release -Version ${{steps.strip-v.outputs.aesirhermod_version}} -OutputDirectory .
+        run: nuget pack Aesir.Hermod/Aesir.Hermod.csproj -Properties Configuration=Release -Version ${{needs.bump-version.outputs.new_version}} -OutputDirectory .  -Symbols -SymbolPackageFormat snupkg
 
       # Push to our repo
       - name: Push
-        run: dotnet nuget push Aesir.Hermod.${{steps.strip-v.outputs.aesirhermod_version}}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${NUGET_TOKEN}
         env:
           NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
-
-      - name: Push New Tag (temp manual because actions-ecosystem/action-push-tag@v1 is broken)
-        if: ${{ steps.bump-semver.outputs.new_version != null }}
         run: |
-          tag=${{ steps.bump-semver.outputs.new_version }}
-          message='${{ steps.bump-semver.outputs.new_version }}: PR #${{ github.event.pull_request.number }} ${{ github.event.pull_request.title }}'
+          dotnet nuget push Aesir.Hermod.${{needs.bump-version.outputs.new_version}}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${NUGET_TOKEN}
+
+  create-new-github-release:
+    needs: [release, bump-version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Push New Tag (temp manual because actions-ecosystem/action-push-tag@v1 is broken)
+        run: |
+          message='${{needs.bump-version.outputs.new_version_with_v}}: Sha #${{ github.sha }}'
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git tag -a "${tag}" -m "${message}"
-          git push origin "${tag}"
+          git tag -a "${{needs.bump-version.outputs.new_version_with_v}}" -m "${message}"
+          git push origin "${{needs.bump-version.outputs.new_version_with_v}}"
+          gh release create --generate-notes "${{needs.bump-version.outputs.new_version_with_v}}"
+
+      - name: Add release summary
+        run: |
+          echo '### New version released! :rocket:' >> $GITHUB_STEP_SUMMARY
+          echo 'Version number: ${{needs.bump-version.outputs.new_version_with_v}}' >> $GITHUB_STEP_SUMMARY

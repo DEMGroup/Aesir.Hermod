@@ -1,6 +1,7 @@
 ﻿using Aesir.Hermod.Bus.Buses;
 using Aesir.Hermod.Bus.Configuration;
 using Aesir.Hermod.Exceptions;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RabbitMQ.Client;
 
@@ -18,7 +19,7 @@ public class RabbitMqBusTests
         connection.Setup(c => c.CreateModel()).Returns(model.Object);
         connFactory.Setup(c => c.CreateConnection()).Returns(connection.Object);
 
-        var bus = new RabbitMqBus(new BusOptions(), connFactory.Object);
+        var bus = new RabbitMqBus(new ServiceCollection().BuildServiceProvider(), connFactory.Object);
         return bus;
     }
 

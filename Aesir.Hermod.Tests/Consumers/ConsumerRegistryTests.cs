@@ -2,6 +2,7 @@
 using Aesir.Hermod.Consumers.Interfaces;
 using Aesir.Hermod.Exceptions;
 using Aesir.Hermod.Messages.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aesir.Hermod.Tests.Consumers;
 
@@ -10,7 +11,7 @@ public class ConsumerRegistryTests
     [Fact]
     public void TryAdd_ShouldAddFirstTime()
     {
-        var consumerReg = new ConsumerRegistry();
+        var consumerReg = new ConsumerRegistry(new ServiceCollection().BuildServiceProvider());
         var success = consumerReg.TryAdd(typeof(string));
         Assert.True(success);
     }
@@ -18,7 +19,7 @@ public class ConsumerRegistryTests
     [Fact]
     public void TryAdd_ShouldFailForDuplicate()
     {
-        var consumerReg = new ConsumerRegistry();
+        var consumerReg = new ConsumerRegistry(new ServiceCollection().BuildServiceProvider());
         consumerReg.TryAdd(typeof(string));
         var success = consumerReg.TryAdd(typeof(string));
         Assert.False(success);
@@ -27,14 +28,14 @@ public class ConsumerRegistryTests
     [Fact]
     public void RegisterConsumer_ShouldThrowWhenNotIConsumer()
     {
-        var consumerReg = new ConsumerRegistry();
+        var consumerReg = new ConsumerRegistry(new ServiceCollection().BuildServiceProvider());
         Assert.Throws<ConfigurationException>(() => consumerReg.RegisterConsumer(typeof(string)));
     }
 
     [Fact]
     public void RegisterConsumer_ShouldThrowWhenDuplicate()
     {
-        var consumerReg = new ConsumerRegistry();
+        var consumerReg = new ConsumerRegistry(new ServiceCollection().BuildServiceProvider());
         consumerReg.RegisterConsumer(typeof(TestConsumer));
         Assert.Throws<ConfigurationException>(() => consumerReg.RegisterConsumer(typeof(TestConsumer)));
     }
@@ -42,7 +43,7 @@ public class ConsumerRegistryTests
     [Fact]
     public void Find_ShouldGetTheConsumerParameterType()
     {
-        var consumerReg = new ConsumerRegistry();
+        var consumerReg = new ConsumerRegistry(new ServiceCollection().BuildServiceProvider());
         consumerReg.RegisterConsumer(typeof(TestConsumer));
         var res = consumerReg.Find(nameof(TestMessage));
         Assert.NotNull(res);
@@ -51,7 +52,7 @@ public class ConsumerRegistryTests
     [Fact]
     public void Find_ShouldReturnNullIfNoConsumerFound()
     {
-        var consumerReg = new ConsumerRegistry();
+        var consumerReg = new ConsumerRegistry(new ServiceCollection().BuildServiceProvider());
         var res = consumerReg.Find(nameof(TestConsumer));
         Assert.Null(res);
     }
