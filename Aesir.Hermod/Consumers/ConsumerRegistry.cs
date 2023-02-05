@@ -38,19 +38,7 @@ internal class ConsumerRegistry : IConsumerRegistry
         return true;
     }
 
-    internal Type? Find(string message) => _consumers.Where(x => GetParamType(x)?.Name == message).FirstOrDefault();
+    internal Type? Find(string message) => _consumers.Find(x => GetParamType(x)?.Name == message);
 
     private static Type? GetParamType(Type method) => method.GetInterfaces().FirstOrDefault()?.GenericTypeArguments.FirstOrDefault();
-
-    internal bool TryGet<T>(out Type? consumer) where T : class
-    {
-        consumer = null;
-        var type = typeof(T);
-
-        if (!typeof(T).ImplementsGenericInterface(typeof(IConsumer<>)))
-            throw new MessageReceiveException($"The provided type {type.FullName} does not implement IConsumer.");
-
-        consumer = _consumers.Where(c => c == type).FirstOrDefault();
-        return consumer != null;
-    }
 }

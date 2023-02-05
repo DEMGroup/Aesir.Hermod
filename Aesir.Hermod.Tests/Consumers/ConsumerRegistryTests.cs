@@ -56,34 +56,6 @@ public class ConsumerRegistryTests
         var res = consumerReg.Find(nameof(TestConsumer));
         Assert.Null(res);
     }
-
-    [Fact]
-    public void TryGet_ShouldReturnTrueAndNonNullType()
-    {
-        var consumerReg = new ConsumerRegistry(new ServiceCollection().BuildServiceProvider());
-        consumerReg.RegisterConsumer(typeof(TestConsumer));
-
-        var success = consumerReg.TryGet<TestConsumer>(out var consumer);
-        Assert.NotNull(consumer);
-        Assert.True(success);
-    }
-
-    [Fact]
-    public void TryGet_ShouldReturnFalseAndNullTypeIfInvalid()
-    {
-        var consumerReg = new ConsumerRegistry(new ServiceCollection().BuildServiceProvider());
-
-        var success = consumerReg.TryGet<TestConsumer>(out var consumer);
-        Assert.Null(consumer);
-        Assert.False(success);
-    }
-
-    [Fact]
-    public void TryGet_ShouldReturnFalseAndNull_IfNotProvidedIConsumer()
-    {
-        var consumerReg = new ConsumerRegistry(new ServiceCollection().BuildServiceProvider());
-        Assert.Throws<MessageReceiveException>(() => consumerReg.TryGet<string>(out var consumer));
-    }
 }
 
 internal record TestMessage(): IMessage;

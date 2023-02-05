@@ -17,4 +17,11 @@ public class MessagePublishException : Exception
     /// <param name="message"></param>
     /// <param name="innerException"></param>
     public MessagePublishException(string message, Exception innerException) : base(message, innerException) { }
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="MessagePublishException"/> class.
+    /// </summary>
+    public MessagePublishException() : base()
+    {
+    }
 }

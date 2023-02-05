@@ -100,6 +100,8 @@ internal class MessageReceiver : IMessageReceiver
     private readonly List<string> _ignoredTypes = new List<string>();
     private void ProcessMessage(BasicDeliverEventArgs e)
     {
+        var scope = _serviceProvider.CreateScope();
+
         try
         {
             var queue = string.IsNullOrEmpty(e.Exchange) ? e.RoutingKey : e.Exchange;
@@ -158,7 +160,7 @@ internal class MessageReceiver : IMessageReceiver
             var constructedCtx = ctxType.MakeGenericType(parameter);
 
             var obj = Activator.CreateInstance(constructedCtx, new object[] { msg, e, _serviceProvider.GetRequiredService<IMessageProducer>() });
-            var instance = ActivatorUtilities.CreateInstance(_serviceProvider, consumerMethod);
+            var instance = ActivatorUtilities.CreateInstance(scope.ServiceProvider, consumerMethod);
             method.Invoke(instance, new List<object> { obj! }.ToArray());
 
             var prop = constructedCtx.GetProperty(nameof(MessageContext<IMessage>.HasReplied), BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
