@@ -6,7 +6,11 @@ on:
       semver:
         description: Semver level to bump (Possible Versions - major, minor, patch)
         required: false
-        type: string
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
     outputs:
       new_version:
         description: "The new semver version (sans 'v' prefix) based on the inputs.semver"
