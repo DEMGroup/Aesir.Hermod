@@ -82,7 +82,9 @@ public class MessageProducer : IMessageProducer
     {
         if (string.IsNullOrEmpty(exchange) && string.IsNullOrEmpty(routingKey))
             throw new MessagePublishException("You must specify a queue or exchange, both cannot be null or empty.");
-
+    
+        CheckRouteExistence(exchange, routingKey);
+        
         var msgWrapper = new MessageWrapper
             { Message = JsonSerializer.Serialize((object)message), Type = message.GetType().Name };
 
@@ -100,7 +102,7 @@ public class MessageProducer : IMessageProducer
         return props.CorrelationId;
     }
 
-    private void GetRouteExistence(string? exchange, string? routeKey)
+    private void CheckRouteExistence(string? exchange, string? routeKey)
     {
         // Queue
         if (string.IsNullOrEmpty(exchange) && !_registeredQueues.Contains(routeKey!))
