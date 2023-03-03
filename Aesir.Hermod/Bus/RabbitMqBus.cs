@@ -17,7 +17,29 @@ internal class RabbitMqBus : IMessagingBus
     internal RabbitMqBus(IServiceProvider sp, IConnectionFactory connFac)
     {
         _logger = sp.GetLogger<RabbitMqBus>();
-        _model = connFac.CreateConnection().CreateModel();
+        _model = CreateConnectionWithRetry(connFac);
+    }
+
+    private static IModel CreateConnectionWithRetry(IConnectionFactory connFac)
+    {
+        const int maxRetries = 5;
+        const int delayMs = 500;
+
+        Exception? lastException = null;
+
+        for (var retryCount = 1; retryCount <= maxRetries; retryCount++)
+        {
+            try
+            {
+                return connFac.CreateConnection().CreateModel();
+            }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                Thread.Sleep(delayMs);
+            }
+        }
+        throw new Exception("Failed to establish connection after multiple attempts.", lastException);
     }
 
     public IModel GetChannel() => _model;
