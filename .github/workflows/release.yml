@@ -6,7 +6,11 @@ on:
       semver:
         description: "How would you bump the version (semver)? (e.g. major, minor, patch)"
         required: true
-        type: string
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
   pull_request:
     branch: [main]
     types: [closed]
