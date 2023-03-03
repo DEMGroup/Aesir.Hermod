@@ -357,3 +357,5 @@ MigrationBackup/
 .ionide/
 AesirApi/.vscode/tasks.json
 AesirApi/.vscode/launch.json
+
+**/.idea

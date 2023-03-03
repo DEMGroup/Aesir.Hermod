@@ -22,7 +22,8 @@ public class MessageProducer : IMessageProducer
     private readonly TimeSpan _timeout;
     private readonly ILogger<MessageProducer> _logger;
     private readonly IMessagingBus _messagingBus;
-
+    private readonly List<string> _registeredQueues = new List<string>();
+    
     /// <summary>
     /// Creates a new instance of the <see cref="MessageProducer"/> class.
     /// </summary>
@@ -36,7 +37,7 @@ public class MessageProducer : IMessageProducer
         _logger = sp.GetLogger<MessageProducer>();
     }
 
-    internal IBasicProperties CreateProperties()
+    private IBasicProperties CreateProperties()
     {
         var props = _messagingBus.GetChannel().CreateBasicProperties();
         props.ReplyTo = _replyQueue;
@@ -61,8 +62,15 @@ public class MessageProducer : IMessageProducer
         var tcs = new TaskCompletionSource<TResult?>();
         _messagingBus.RegisterResponseExpected(correlationId, (obj) =>
         {
-            if (obj == null) tcs.SetResult(default);
-            if (obj is TResult response) tcs.SetResult(response);
+            switch (obj)
+            {
+                case null:
+                    tcs.SetResult(default);
+                    break;
+                case TResult response:
+                    tcs.SetResult(response);
+                    break;
+            }
         }, typeof(TResult));
 
         return tcs.Task.TimeoutAfter(_timeout, () => _messagingBus.RemoveCorrelationCallback(correlationId));
@@ -73,6 +81,12 @@ public class MessageProducer : IMessageProducer
         if (string.IsNullOrEmpty(exchange) && string.IsNullOrEmpty(routingKey))
             throw new MessagePublishException("You must specify a queue or exchange, both cannot be null or empty.");
 
+        if (string.IsNullOrEmpty(exchange) && !_registeredQueues.Contains(routingKey!))
+        {
+            _messagingBus.GetChannel().QueueDeclare(routingKey, true, false, false);
+            _registeredQueues.Add(routingKey!);
+        }
+        
         var msgWrapper = new MessageWrapper { Message = JsonSerializer.Serialize((object)message), Type = message.GetType().Name };
 
         var msg = JsonSerializer.Serialize(msgWrapper);
