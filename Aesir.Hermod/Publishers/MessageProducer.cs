@@ -111,7 +111,7 @@ public class MessageProducer : IMessageProducer
             _registeredQueues.Add(routeKey!);
         }
         // Exchange
-        else if (!string.IsNullOrEmpty(exchange))
+        else if (!string.IsNullOrEmpty(exchange) && !_registeredExchanges.Contains(exchange))
         {
             _messagingBus.GetChannel().ExchangeDeclare(exchange, ExchangeType.Fanout, true);
             _registeredExchanges.Add(exchange);
