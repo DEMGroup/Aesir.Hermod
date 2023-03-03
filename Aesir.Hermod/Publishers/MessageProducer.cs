@@ -23,7 +23,8 @@ public class MessageProducer : IMessageProducer
     private readonly ILogger<MessageProducer> _logger;
     private readonly IMessagingBus _messagingBus;
     private readonly List<string> _registeredQueues = new List<string>();
-    
+    private readonly List<string> _registeredExchanges = new List<string>();
+
     /// <summary>
     /// Creates a new instance of the <see cref="MessageProducer"/> class.
     /// </summary>
@@ -55,7 +56,8 @@ public class MessageProducer : IMessageProducer
         => Send(message, null, queue);
 
     /// <inheritdoc/>
-    public Task<TResult?> SendWithResponseAsync<TResult, T>(T message, string? queue) where T : IMessage where TResult : IMessageResult<T>
+    public Task<TResult?> SendWithResponseAsync<TResult, T>(T message, string? queue)
+        where T : IMessage where TResult : IMessageResult<T>
     {
         var correlationId = Send(message, null, queue);
 
@@ -81,13 +83,8 @@ public class MessageProducer : IMessageProducer
         if (string.IsNullOrEmpty(exchange) && string.IsNullOrEmpty(routingKey))
             throw new MessagePublishException("You must specify a queue or exchange, both cannot be null or empty.");
 
-        if (string.IsNullOrEmpty(exchange) && !_registeredQueues.Contains(routingKey!))
-        {
-            _messagingBus.GetChannel().QueueDeclare(routingKey, true, false, false);
-            _registeredQueues.Add(routingKey!);
-        }
-        
-        var msgWrapper = new MessageWrapper { Message = JsonSerializer.Serialize((object)message), Type = message.GetType().Name };
+        var msgWrapper = new MessageWrapper
+            { Message = JsonSerializer.Serialize((object)message), Type = message.GetType().Name };
 
         var msg = JsonSerializer.Serialize(msgWrapper);
         var msgBytes = Encoding.UTF8.GetBytes(msg);
@@ -103,6 +100,22 @@ public class MessageProducer : IMessageProducer
         return props.CorrelationId;
     }
 
+    private void GetRouteExistence(string? exchange, string? routeKey)
+    {
+        // Queue
+        if (string.IsNullOrEmpty(exchange) && !_registeredQueues.Contains(routeKey!))
+        {
+            _messagingBus.GetChannel().QueueDeclare(routeKey, true, false, false);
+            _registeredQueues.Add(routeKey!);
+        }
+        // Exchange
+        else if (!string.IsNullOrEmpty(exchange))
+        {
+            _messagingBus.GetChannel().ExchangeDeclare(exchange, ExchangeType.Fanout, true);
+            _registeredExchanges.Add(exchange);
+        }
+    }
+
     /// <inheritdoc/>
     public void Respond<TResult, T>(TResult message, string correlationId, string replyTo)
         where T : IMessage
@@ -111,7 +124,8 @@ public class MessageProducer : IMessageProducer
         var replyProps = CreateProperties();
         replyProps.CorrelationId = correlationId;
 
-        var msgWrapper = new MessageWrapper { Message = JsonSerializer.Serialize((object)message), Type = message.GetType().Name };
+        var msgWrapper = new MessageWrapper
+            { Message = JsonSerializer.Serialize((object)message), Type = message.GetType().Name };
 
         var msg = JsonSerializer.Serialize(msgWrapper);
         var msgBytes = Encoding.UTF8.GetBytes(msg);
