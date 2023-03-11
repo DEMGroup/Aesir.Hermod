@@ -93,11 +93,20 @@ public class MessageProducer : IMessageProducer
 
         var props = CreateProperties();
 
-        _messagingBus.GetChannel().BasicPublish(
-            exchange: exchange ?? "",
-            routingKey: routingKey ?? "",
-            basicProperties: props,
-            body: msgBytes);
+        try
+        {
+            _messagingBus.GetChannel().BasicPublish(
+                exchange: exchange ?? "",
+                routingKey: routingKey ?? "",
+                basicProperties: props,
+                body: msgBytes);
+        }
+        catch
+        {
+            _registeredExchanges.Clear();
+            _registeredQueues.Clear();
+            throw;
+        }
 
         return props.CorrelationId;
     }
