@@ -1,6 +1,7 @@
 ﻿using Aesir.Hermod.Bus.Configuration;
 using Aesir.Hermod.Bus.Interfaces;
 using Aesir.Hermod.Consumers.Interfaces;
+using Aesir.Hermod.Models;
 using Aesir.Hermod.Publishers.Configuration;
 
 namespace Aesir.Hermod.Configuration.Interfaces;
@@ -27,12 +28,25 @@ public interface IConfigurationBuilder
     /// </summary>
     /// <param name="queue"></param>
     /// <param name="configure"></param>
-    void ConsumeQueue(string queue, Action<IConsumerRegistry> configure);
+    void ConsumeQueue(
+        QueueDeclaration queue, 
+        Action<IConsumerRegistry> configure);
+
+    /// <summary>
+    /// Registers an <see cref="IConsumer{T}"/> to be used for the specified queues.
+    /// </summary>
+    /// <param name="queues"></param>
+    /// <param name="configure"></param>
+    void ConsumeQueues(
+        IEnumerable<QueueDeclaration> queues, 
+        Action<IConsumerRegistry> configure);
 
     /// <summary>
     /// Registers an <see cref="IConsumer{T}"/> to be used for the specified exchange.
     /// </summary>
-    /// <param name="queue"></param>
+    /// <param name="exchange"></param>
     /// <param name="configure"></param>
-    void ConsumeExchange(string queue, Action<IConsumerRegistry> configure);
+    void ConsumeExchange(
+        ExchangeDeclaration exchange,
+        Action<IConsumerRegistry> configure);
 }

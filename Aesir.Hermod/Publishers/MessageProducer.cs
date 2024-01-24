@@ -48,18 +48,27 @@ public class MessageProducer : IMessageProducer
     }
 
     /// <inheritdoc/>
-    public void SendToExchange<T>(T message, string exchange) where T : IMessage
-        => Send(message, exchange, "");
+    public void SendToExchange<T>(
+        T message,
+        ExchangeDeclaration exchange,
+        string? routingKey = null) where T : IMessage
+        => Send(message, exchange.Exchange, routingKey, exchange, null);
 
     /// <inheritdoc/>
-    public void Send<T>(T message, string queue) where T : IMessage
-        => Send(message, null, queue);
+    public void Send<T>(
+        T message,
+        QueueDeclaration queue
+    ) where T : IMessage
+        => Send(message, null, queue.Queue, null, queue);
 
     /// <inheritdoc/>
-    public Task<TResult?> SendWithResponseAsync<TResult, T>(T message, string? queue)
+    public Task<TResult?> SendWithResponseAsync<TResult, T>(
+        T message,
+        QueueDeclaration declaration)
         where T : IMessage where TResult : IMessageResult<T>
     {
-        var correlationId = Send(message, null, queue);
+        var correlationId = Send(message, null, declaration.Queue, null, declaration);
+        ;
 
         var tcs = new TaskCompletionSource<TResult?>();
         _messagingBus.RegisterResponseExpected(correlationId, (obj) =>
@@ -78,13 +87,22 @@ public class MessageProducer : IMessageProducer
         return tcs.Task.TimeoutAfter(_timeout, () => _messagingBus.RemoveCorrelationCallback(correlationId));
     }
 
-    private string Send<T>(T message, string? exchange, string? routingKey) where T : IMessage
+    private string Send<T>(
+        T message,
+        string? exchange,
+        string? routingKey,
+        ExchangeDeclaration? exchangeDeclaration,
+        QueueDeclaration? queueDeclaration) where T : IMessage
     {
         if (string.IsNullOrEmpty(exchange) && string.IsNullOrEmpty(routingKey))
             throw new MessagePublishException("You must specify a queue or exchange, both cannot be null or empty.");
-    
-        CheckRouteExistence(exchange, routingKey);
-        
+
+        if (!string.IsNullOrEmpty(exchange) && !_registeredExchanges.Contains(exchange))
+            DeclareExchange(exchangeDeclaration);
+
+        if (string.IsNullOrEmpty(exchange) && !_registeredQueues.Contains(routingKey!))
+            DeclareQueue(queueDeclaration);
+
         var msgWrapper = new MessageWrapper
             { Message = JsonSerializer.Serialize((object)message), Type = message.GetType().Name };
 
@@ -111,20 +129,28 @@ public class MessageProducer : IMessageProducer
         return props.CorrelationId;
     }
 
-    private void CheckRouteExistence(string? exchange, string? routeKey)
+    private void DeclareExchange(ExchangeDeclaration? exchangeDeclaration)
     {
-        // Queue
-        if (string.IsNullOrEmpty(exchange) && !_registeredQueues.Contains(routeKey!))
-        {
-            _messagingBus.GetChannel().QueueDeclare(routeKey, true, false, false);
-            _registeredQueues.Add(routeKey!);
-        }
-        // Exchange
-        else if (!string.IsNullOrEmpty(exchange) && !_registeredExchanges.Contains(exchange))
-        {
-            _messagingBus.GetChannel().ExchangeDeclare(exchange, ExchangeType.Fanout, true);
-            _registeredExchanges.Add(exchange);
-        }
+        if (exchangeDeclaration is null) throw new Exception("Attempted to send message to an undeclared exchange.");
+        _messagingBus.GetChannel().ExchangeDeclare(
+            exchangeDeclaration.Exchange,
+            exchangeDeclaration.Type,
+            exchangeDeclaration.Durable,
+            exchangeDeclaration.AutoDelete,
+            exchangeDeclaration.Arguments);
+
+        _registeredExchanges.Add(exchangeDeclaration.Exchange);
+    }
+
+    private void DeclareQueue(QueueDeclaration? queueDeclaration)
+    {
+        if (queueDeclaration is null) throw new Exception("Attempted to send message to an undeclared queue.");
+        _messagingBus.GetChannel().QueueDeclare(
+            queueDeclaration.Queue,
+            queueDeclaration.Durable,
+            queueDeclaration.Exclusive,
+            queueDeclaration.AutoDelete);
+        _registeredQueues.Add(queueDeclaration.Queue);
     }
 
     /// <inheritdoc/>

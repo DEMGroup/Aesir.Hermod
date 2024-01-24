@@ -30,8 +30,11 @@ internal class MessageReceiver : IMessageReceiver
         _messagingBus = sp.GetRequiredService<IMessagingBus>();
         _consumerFactory = consumers;
         _serviceProvider = sp;
-        RegisterEndpoints(consumers.GetEndpoints());
         _logger = sp.GetLogger<MessageReceiver>();
+        
+        RegisterExchanges(consumers.GetExchanges());
+        RegisterQueues(consumers.GetQueues());
+        CreateConsumer("amq.rabbitmq.reply-to");
     }
 
     public void CreateConsumer(string queue)
@@ -41,25 +44,24 @@ internal class MessageReceiver : IMessageReceiver
         _messagingBus.GetChannel().BasicConsume(queue, true, consumer);
     }
 
-    private void RegisterEndpoints(IEnumerable<(string, EndpointType)> endpoints)
+    private void RegisterExchanges(IEnumerable<ExchangeDeclaration> exchanges)
     {
-        foreach (var (route, type) in endpoints)
+        foreach (var exchange in exchanges)
         {
-            if (type == EndpointType.Queue)
-            {
-                _messagingBus.GetChannel().QueueDeclare(route, true, false, false);
-                CreateConsumer(route);
-            }
-            else
-            {
-                _messagingBus.GetChannel().ExchangeDeclare(route, ExchangeType.Fanout, true);
-                var queueName = _messagingBus.GetChannel().QueueDeclare().QueueName;
-                _messagingBus.GetChannel().QueueBind(queueName, route, "");
-                CreateConsumer(queueName);
-            }
+            _messagingBus.GetChannel().ExchangeDeclare(exchange.Exchange, exchange.Type, exchange.Durable, exchange.AutoDelete);
+            var queueName = _messagingBus.GetChannel().QueueDeclare().QueueName;
+            _messagingBus.GetChannel().QueueBind(queueName, exchange.Exchange, "");
+            CreateConsumer(queueName);
         }
+    }
 
-        CreateConsumer("amq.rabbitmq.reply-to");
+    private void RegisterQueues(IEnumerable<QueueDeclaration> queues)
+    {
+        foreach (var queue in queues)
+        {
+            _messagingBus.GetChannel().QueueDeclare(queue.Queue, queue.Durable, queue.Exclusive, queue.AutoDelete);
+            CreateConsumer(queue.Queue);
+        }
     }
 
     private void ReceiveMessage(object? sender, BasicDeliverEventArgs e)
