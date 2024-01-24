@@ -7,8 +7,8 @@ namespace Aesir.Hermod.Consumers.Interfaces;
 internal interface IEndpointConsumerFactory
 {
     void AddQueue(QueueDeclaration queue, ConsumerRegistry registry);
-    void AddExchange(ExchangeDeclaration queue, ConsumerRegistry registry);
-    EndpointConsumer? Get(string queue, EndpointType type);
+    void AddExchange(ExchangeDeclaration queue, ConsumerRegistry registry, string? routingKey = null);
+    IEnumerable<EndpointConsumer> Get(string queue, EndpointType type, string? routingKey = null);
     IEnumerable<QueueDeclaration> GetQueues();
-    IEnumerable<ExchangeDeclaration> GetExchanges();
+    IEnumerable<(ExchangeDeclaration, string?)> GetExchanges();
 }

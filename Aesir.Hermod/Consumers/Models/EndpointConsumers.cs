@@ -7,40 +7,46 @@ namespace Aesir.Hermod.Consumers.Models;
 /// </summary>
 public class EndpointConsumer<TDeclaration>
 {
-    internal string RoutingKey { get; }
+    internal string Name { get; }
+    internal string? RoutingKey { get; }
     internal TDeclaration Declaration { get; }
     internal EndpointType EndpointType { get; }
     internal ConsumerRegistry Registry { get; }
 
     internal EndpointConsumer(
-        string routingKey,
+        string name,
         EndpointType endpointType,
         ConsumerRegistry registry,
-        TDeclaration declaration)
+        TDeclaration declaration,
+        string? routingKey = null)
     {
-        RoutingKey = routingKey;
+        Name = name;
         EndpointType = endpointType;
         Registry = registry;
         Declaration = declaration;
+        RoutingKey = endpointType == EndpointType.Exchange ? routingKey : null;
     }
 }
 
 public class EndpointConsumer
 {
-    internal string RoutingKey { get; }
+    internal string Name { get; }
     internal EndpointType EndpointType { get; }
     internal ConsumerRegistry Registry { get; }
+    internal string? RoutingKey { get; }
 
     internal EndpointConsumer(
-        string routingKey,
+        string name,
         EndpointType endpointType,
-        ConsumerRegistry registry)
+        ConsumerRegistry registry,
+        string? routingKey)
     {
-        RoutingKey = routingKey;
+        Name = name;
         EndpointType = endpointType;
         Registry = registry;
+        RoutingKey = routingKey;
     }
 
     internal static EndpointConsumer FromTypedConsumer<TDeclaration>(EndpointConsumer<TDeclaration> consumer)
-        => new (consumer.RoutingKey, consumer.EndpointType, consumer.Registry);
+        => new (consumer.Name, consumer.EndpointType, consumer.Registry, consumer.RoutingKey);
 }
