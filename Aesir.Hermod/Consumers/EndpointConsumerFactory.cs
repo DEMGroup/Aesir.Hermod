@@ -47,57 +47,14 @@ internal class EndpointConsumerFactory : IEndpointConsumerFactory
         );
     }
 
-    public IEnumerable<EndpointConsumer> Get(string queue, EndpointType type, string? routingKey = null)
+    public EndpointConsumer? Get(string queue, EndpointType type, string? routingKey = null)
         => _queueConsumers
             .Select(EndpointConsumer.FromTypedConsumer)
             .Concat(_queueConsumers.Select(EndpointConsumer.FromTypedConsumer))
-            .Where(x =>
+            .FirstOrDefault(x =>
                 x.Name == queue &&
                 x.EndpointType == type &&
-                (routingKey is null || MatchRoutingKeys(x.RoutingKey, routingKey)));
-
-    private static bool MatchRoutingKeys(string? key1, string key2)
-        => key1 is not null && MatchParts(key1.Split('.'), key2.Split('.'), 0, 0);
-
-    private static bool MatchParts(
-        IReadOnlyList<string> parts1, 
-        IReadOnlyList<string> parts2, 
-        int index1, 
-        int index2)
-    {
-        while (true)
-        {
-            if (index1 == parts1.Count && index2 == parts2.Count)
-            {
-                return true;
-            }
-
-            if (index1 < parts1.Count && index2 < parts2.Count)
-            {
-                if (parts1[index1] == "#" || parts2[index2] == "#")
-                {
-                    return MatchParts(parts1, parts2, parts1.Count, parts2.Count) || MatchParts(parts1, parts2, index1 + 1, index2) || MatchParts(parts1, parts2, index1, index2 + 1);
-                }
-
-                if (parts1[index1] == "*" || parts2[index2] == "*" || parts1[index1] == parts2[index2])
-                {
-                    index1 += 1;
-                    index2 += 1;
-                    continue;
-                }
-            }
-
-            if (index1 < parts1.Count && parts1[index1] == "#")
-            {
-                index1 += 1;
-                continue;
-            }
-
-            if (index2 >= parts2.Count || parts2[index2] != "#") return false;
-            index2 += 1;
-        }
-    }
-
+                (routingKey is null || x.RoutingKey == routingKey));
 
     public IEnumerable<QueueDeclaration> GetQueues()
         => _queueConsumers.Select(x => x.Declaration);

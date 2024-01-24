@@ -34,76 +34,24 @@ internal class MessageReceiver : IMessageReceiver
         _serviceProvider = sp;
         _logger = sp.GetLogger<MessageReceiver>();
 
-        RegisterExchanges(consumers.GetExchanges());
-        RegisterQueues(consumers.GetQueues());
-        CreateConsumer("amq.rabbitmq.reply-to");
+        _messagingBus.RegisterExchanges(consumers.GetExchanges(), ReceiveMessage);
+        _messagingBus.RegisterQueues(consumers.GetQueues(), ReceiveMessage);
+        _messagingBus.RegisterConsumer("amq.rabbitmq.reply-to", ReceiveMessage);
     }
 
-    public void CreateConsumer(string queue)
-    {
-        var consumer = new EventingBasicConsumer(_messagingBus.GetChannel());
-        consumer.Received += ReceiveMessage;
-        _messagingBus.GetChannel().BasicConsume(queue, true, consumer);
-    }
-
-    private void RegisterExchanges(IEnumerable<(ExchangeDeclaration, string?)> exchanges)
-    {
-        foreach (var (exchange, routingKey) in exchanges)
-        {
-            _messagingBus.GetChannel()
-                .ExchangeDeclare(exchange.Exchange, exchange.Type, exchange.Durable, exchange.AutoDelete);
-            var queueName = _messagingBus.GetChannel().QueueDeclare().QueueName;
-            _messagingBus.GetChannel().QueueBind(queueName, exchange.Exchange, routingKey);
-            CreateConsumer(queueName);
-        }
-    }
-
-    private void RegisterQueues(IEnumerable<QueueDeclaration> queues)
-    {
-        foreach (var queue in queues)
-        {
-            _messagingBus.GetChannel().QueueDeclare(queue.Queue, queue.Durable, queue.Exclusive, queue.AutoDelete);
-            CreateConsumer(queue.Queue);
-        }
-    }
-
-    private void ReceiveMessage(object? sender, BasicDeliverEventArgs e)
+    private void ReceiveMessage(string? routingKey, BasicDeliverEventArgs e)
     {
         var res = _messagingBus.GetExpectedResponse(e.BasicProperties.CorrelationId);
-
-        if (!e.RoutingKey.StartsWith("amq.rabbitmq.reply-to")) ProcessMessage(e);
-        else if (res != null) ProcessResult(e, res);
-    }
-
-    private static void ProcessResult(BasicDeliverEventArgs e, ExpectedResponse response)
-    {
-        try
-        {
-            var bodyMsgStr = Encoding.UTF8.GetString(e.Body.ToArray());
-            var bodyMsg = JsonSerializer.Deserialize<MessageWrapper>(bodyMsgStr);
-            if (bodyMsg == null) return;
-
-            if (bodyMsg.Message == null)
-            {
-                response.Action(null);
-                return;
-            }
-
-            var res = JsonSerializer.Deserialize(bodyMsg.Message, response.Type);
-            if (res == null) return;
-
-            response.Action(res);
-        }
-        catch
-        {
-            // Handle errors
-        }
+        if (!e.RoutingKey.StartsWith("amq.rabbitmq.reply-to")) ProcessMessage(e, routingKey);
+        else if (res != null) MessageProcessing.ProcessResponse(e, res);
     }
 
     private readonly List<string> _ignoredQueues = new();
     private readonly List<string> _ignoredTypes = new();
 
-    private void ProcessMessage(BasicDeliverEventArgs e)
+    private void ProcessMessage(
+        BasicDeliverEventArgs e,
+        string? routingKey)
     {
         var scope = _serviceProvider.CreateScope();
 
@@ -111,20 +59,18 @@ internal class MessageReceiver : IMessageReceiver
         {
             var isExchange = string.IsNullOrEmpty(e.Exchange);
             var name = !isExchange ? e.RoutingKey : e.Exchange;
-            var routingKey = !isExchange ? null : e.RoutingKey;
 
             _logger.LogDebug("[Message:{messageId}] Message recieved on queue {queue}", e.BasicProperties.MessageId,
                 name);
 
             if (_ignoredQueues.Contains(name)) return;
-            var consumers = _consumerFactory.Get(
+            var consumer = _consumerFactory.Get(
                 name,
                 isExchange ? EndpointType.Exchange : EndpointType.Queue,
                 routingKey
             );
 
-            var endpointConsumers = consumers as EndpointConsumer[] ?? consumers.ToArray();
-            if (!endpointConsumers.Any())
+            if (consumer is null)
             {
                 _ignoredQueues.Add(name);
                 _logger.LogDebug("[Message:{messageId}], No consumer registered for {queue} adding to ignore.",
@@ -132,37 +78,17 @@ internal class MessageReceiver : IMessageReceiver
                 return;
             }
 
-            var bodyMsgStr = Encoding.UTF8.GetString(e.Body.ToArray());
-            var bodyMsg = JsonSerializer.Deserialize<MessageWrapper>(bodyMsgStr);
+            var bodyMsg = MessageProcessing.ParseMessage(e.Body);
+            var res = UnwrapMessage(bodyMsg, e.BasicProperties.CorrelationId);
+            if (res is null) return;
 
-            if (bodyMsg == null)
-            {
-                _logger.LogDebug("[Message:{messageId}] The deserialized message was null.",
-                    e.BasicProperties.MessageId);
-                return;
-            }
-
-            if (string.IsNullOrEmpty(bodyMsg.Message))
-            {
-                _logger.LogDebug("[Message:{messageId}] The message had no body content.", e.BasicProperties.MessageId);
-                return;
-            }
-
-            if (string.IsNullOrEmpty(bodyMsg.Type))
-            {
-                _logger.LogDebug("[Message:{messageId}] The message didn't contain a deserialization type.",
-                    e.BasicProperties.MessageId);
-                return;
-            }
-
-            if (_ignoredTypes.Contains(bodyMsg.Type)) return;
-            var consumerMethod = endpointConsumers.FirstOrDefault()!.Registry.Find(bodyMsg.Type);
+            var consumerMethod = consumer.Registry.Find(res.Value.Item1);
             if (consumerMethod == null)
             {
                 _logger.LogDebug(
                     "[Message:{messageId}] No consumer found for the type of message {type} adding to ignore list.",
-                    e.BasicProperties.MessageId, bodyMsg.Type);
-                _ignoredTypes.Add(bodyMsg.Type);
+                    e.BasicProperties.MessageId, res.Value.Item1);
+                _ignoredTypes.Add(res.Value.Item1);
                 return;
             }
 
@@ -176,22 +102,26 @@ internal class MessageReceiver : IMessageReceiver
                 throw new MessageReceiveException(
                     "Failed to get to get the registered IMessage type for this IConsumer.");
 
-            var msg = JsonSerializer.Deserialize(bodyMsg.Message, parameter);
+            var msg = JsonSerializer.Deserialize(res.Value.Item2, parameter);
             if (msg == null)
                 throw new MessageReceiveException("Failed to deserialize the IMessage.");
 
             var ctxType = typeof(MessageContext<>);
             var constructedCtx = ctxType.MakeGenericType(parameter);
 
-            var obj = Activator.CreateInstance(constructedCtx,
-                new object[] { msg, e, _serviceProvider.GetRequiredService<IMessageProducer>() });
+            var obj = Activator.CreateInstance(
+                constructedCtx,
+                msg,
+                e,
+                _serviceProvider.GetRequiredService<IMessageProducer>()
+            );
             var instance = ActivatorUtilities.CreateInstance(scope.ServiceProvider, consumerMethod);
             method.Invoke(instance, new List<object> { obj! }.ToArray());
 
             var prop = constructedCtx.GetProperty(nameof(MessageContext<IMessage>.HasReplied),
                 BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
-            if (prop!.GetValue(obj) is bool val && !val)
+            if (prop!.GetValue(obj) is false)
             {
                 _producer.SendEmpty(e.BasicProperties.CorrelationId);
             }
@@ -202,5 +132,30 @@ internal class MessageReceiver : IMessageReceiver
             _logger.LogError(ex.StackTrace);
             throw new MessageReceiveException(ex.Message);
         }
+    }
+
+    private (string, string)? UnwrapMessage(
+        MessageWrapper? message,
+        string messageId)
+    {
+        if (message == null)
+        {
+            _logger.LogDebug("[Message:{messageId}] The deserialized message was null.",
+                messageId);
+            return null;
+        }
+
+        if (string.IsNullOrEmpty(message.Message))
+        {
+            _logger.LogDebug("[Message:{messageId}] The message had no body content.", messageId);
+            return null;
+        }
+
+        if (!string.IsNullOrEmpty(message.Type))
+            return _ignoredTypes.Contains(message.Type) ? null : (message.Type, message.Message);
+
+        _logger.LogDebug("[Message:{messageId}] The message didn't contain a deserialization type.",
+            messageId);
+        return null;
     }
 }
