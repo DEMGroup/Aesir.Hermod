@@ -50,7 +50,7 @@ internal class EndpointConsumerFactory : IEndpointConsumerFactory
     public EndpointConsumer? Get(string queue, EndpointType type, string? routingKey = null)
         => _queueConsumers
             .Select(EndpointConsumer.FromTypedConsumer)
-            .Concat(_queueConsumers.Select(EndpointConsumer.FromTypedConsumer))
+            .Concat(_exchangeConsumers.Select(EndpointConsumer.FromTypedConsumer))
             .FirstOrDefault(x =>
                 x.Name == queue &&
                 x.EndpointType == type &&

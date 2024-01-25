@@ -53,7 +53,7 @@ internal class MessageReceiver : IMessageReceiver
 
         try
         {
-            var isExchange = string.IsNullOrEmpty(e.Exchange);
+            var isExchange = !string.IsNullOrEmpty(e.Exchange);
             var name = !isExchange ? e.RoutingKey : e.Exchange;
 
             _logger.LogDebug("[Message:{messageId}] Message recieved on queue {queue}", e.BasicProperties.MessageId,
