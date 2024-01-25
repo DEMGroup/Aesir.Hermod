@@ -15,6 +15,9 @@ on:
     branch: [main]
     types: [closed]
 
+env:
+  NUGET_ENABLE_LEGACY_CSPROJ_PACK: true
+
 jobs:
   bump-version:
     uses: ./.github/workflows/bump-version.yml
