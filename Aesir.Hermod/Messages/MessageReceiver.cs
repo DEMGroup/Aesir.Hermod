@@ -6,15 +6,11 @@ using Aesir.Hermod.Extensions;
 using Aesir.Hermod.Messages.Interfaces;
 using Aesir.Hermod.Models;
 using Aesir.Hermod.Publishers.Interfaces;
-using Aesir.Hermod.Publishers.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
-using Aesir.Hermod.Consumers.Models;
 
 namespace Aesir.Hermod.Messages;
 
@@ -34,9 +30,9 @@ internal class MessageReceiver : IMessageReceiver
         _serviceProvider = sp;
         _logger = sp.GetLogger<MessageReceiver>();
 
+        _messagingBus.RegisterConsumer("amq.rabbitmq.reply-to", ReceiveMessage);
         _messagingBus.RegisterExchanges(consumers.GetExchanges(), ReceiveMessage);
         _messagingBus.RegisterQueues(consumers.GetQueues(), ReceiveMessage);
-        _messagingBus.RegisterConsumer("amq.rabbitmq.reply-to", ReceiveMessage);
     }
 
     private void ReceiveMessage(string? routingKey, BasicDeliverEventArgs e)

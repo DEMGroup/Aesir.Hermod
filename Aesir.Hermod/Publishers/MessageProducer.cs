@@ -38,10 +38,10 @@ public class MessageProducer : IMessageProducer
         _logger = sp.GetLogger<MessageProducer>();
     }
 
-    private IBasicProperties CreateProperties()
+    private IBasicProperties CreateProperties(bool isReplyTo)
     {
         var props = _messagingBus.GetChannel().CreateBasicProperties();
-        props.ReplyTo = _replyQueue;
+        props.ReplyTo = !isReplyTo ? null : _replyQueue;
         var correlationId = Guid.NewGuid().ToString();
         props.CorrelationId = correlationId;
         return props;
@@ -109,7 +109,7 @@ public class MessageProducer : IMessageProducer
         var msg = JsonSerializer.Serialize(msgWrapper);
         var msgBytes = Encoding.UTF8.GetBytes(msg);
 
-        var props = CreateProperties();
+        var props = CreateProperties(exchange is null);
 
         try
         {
@@ -119,7 +119,7 @@ public class MessageProducer : IMessageProducer
                 basicProperties: props,
                 body: msgBytes);
         }
-        catch
+        catch(Exception ex)
         {
             _registeredExchanges.Clear();
             _registeredQueues.Clear();
@@ -158,7 +158,7 @@ public class MessageProducer : IMessageProducer
         where T : IMessage
         where TResult : IMessageResult<T>
     {
-        var replyProps = CreateProperties();
+        var replyProps = CreateProperties(false);
         replyProps.CorrelationId = correlationId;
 
         var msgWrapper = new MessageWrapper
@@ -177,7 +177,7 @@ public class MessageProducer : IMessageProducer
     /// <inheritdoc/>
     public void SendEmpty(string correlationId)
     {
-        var replyProps = CreateProperties();
+        var replyProps = CreateProperties(false);
         replyProps.CorrelationId = correlationId;
 
         var msg = new MessageWrapper();
