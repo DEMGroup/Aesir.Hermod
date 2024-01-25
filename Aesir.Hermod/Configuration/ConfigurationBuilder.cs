@@ -25,8 +25,8 @@ public class ConfigurationBuilder : IConfigurationBuilder
     private readonly EndpointConsumerFactory _endpointConsumerFactory;
     private readonly IServiceProvider _sp;
     private readonly ILogger<ConfigurationBuilder> _logger;
-    internal BusOptions BusOptions { get; set; } = new ();
-    internal ProducerOptions ProducerOptions { get; set; } = new ();
+    internal BusOptions BusOptions { get; set; } = new();
+    internal ProducerOptions ProducerOptions { get; set; } = new();
 
     /// <summary>
     /// Creates a new instance of the <see cref="ConfigurationBuilder"/> class.
@@ -42,13 +42,21 @@ public class ConfigurationBuilder : IConfigurationBuilder
     /// Configures the RabbitMQ connection.
     /// </summary>
     /// <param name="configure"></param>
-    public void ConfigureHost(Action<BusOptions> configure){
+    public void ConfigureHost(Action<BusOptions> configure)
+    {
         configure.Invoke(BusOptions);
-        _logger.LogDebug("Configured bus options as - (Host: {host}, Port: {port}, VHost: {vhost}, User: {user}, RetryConnection: {retry}, RetryWait: {wait})", BusOptions.Host, BusOptions.Port, BusOptions.VHost, BusOptions.User, BusOptions.RetryConnection, BusOptions.RetryWaitTime);
+        _logger.LogDebug(
+            "Configured bus options as - (Host: {host}, Port: {port}, VHost: {vhost}, User: {user}, RetryConnection: {retry}, RetryWait: {wait})",
+            BusOptions.Host, BusOptions.Port, BusOptions.VHost, BusOptions.User, BusOptions.RetryConnection,
+            BusOptions.RetryWaitTime);
     }
 
-    internal IMessagingBus ConfigureBus() {
-        _logger.LogDebug("Configuring rabbit bus with options - (Host: {host}, Port: {port}, VHost: {vhost}, User: {user}, RetryConnection: {retry}, RetryWait: {wait})", BusOptions.Host, BusOptions.Port, BusOptions.VHost, BusOptions.User, BusOptions.RetryConnection, BusOptions.RetryWaitTime);
+    internal IMessagingBus ConfigureBus()
+    {
+        _logger.LogDebug(
+            "Configuring rabbit bus with options - (Host: {host}, Port: {port}, VHost: {vhost}, User: {user}, RetryConnection: {retry}, RetryWait: {wait})",
+            BusOptions.Host, BusOptions.Port, BusOptions.VHost, BusOptions.User, BusOptions.RetryConnection,
+            BusOptions.RetryWaitTime);
         return new RabbitMqBus(_sp, new ConnectionFactory
         {
             UserName = BusOptions.User,
@@ -61,9 +69,11 @@ public class ConfigurationBuilder : IConfigurationBuilder
         });
     }
 
-    internal IMessageReceiver ConfigureReceiver(IServiceProvider sp) => new MessageReceiver(_endpointConsumerFactory, sp);
+    internal IMessageReceiver ConfigureReceiver(IServiceProvider sp) =>
+        new MessageReceiver(_endpointConsumerFactory, sp);
 
-    internal IMessageProducer ConfigureProducer(IServiceProvider sp) => new MessageProducer(sp, ProducerOptions.ResponseTimeout);
+    internal IMessageProducer ConfigureProducer(IServiceProvider sp) =>
+        new MessageProducer(sp, ProducerOptions.ResponseTimeout);
 
     /// <summary>
     /// Registers an <see cref="IConsumer{T}"/> to be used for the specified queue.
@@ -71,7 +81,7 @@ public class ConfigurationBuilder : IConfigurationBuilder
     /// <param name="queue"></param>
     /// <param name="configure"></param>
     public void ConsumeQueue(
-        QueueDeclaration queue, 
+        QueueDeclaration queue,
         Action<IConsumerRegistry> configure)
     {
         _logger.LogDebug("Registering a consumer for queue {queue}", queue);
@@ -98,17 +108,32 @@ public class ConfigurationBuilder : IConfigurationBuilder
         }
     }
 
+    
     /// <summary>
     /// Registers an <see cref="IConsumer{T}"/> to be used for the specified exchange.
     /// </summary>
     /// <param name="exchange"></param>
     /// <param name="configure"></param>
-    public void ConsumeExchange(ExchangeDeclaration exchange, Action<IConsumerRegistry> configure)
+    public void ConsumeExchange(
+        ExchangeDeclaration exchange,
+        Action<IConsumerRegistry> configure)
+        => ConsumeExchange(exchange, null, configure);
+
+    /// <summary>
+    /// Registers an <see cref="IConsumer{T}"/> to be used for the specified exchange.
+    /// </summary>
+    /// <param name="exchange"></param>
+    /// <param name="routingKey"></param>
+    /// <param name="configure"></param>
+    public void ConsumeExchange(
+        ExchangeDeclaration exchange,
+        string? routingKey,
+        Action<IConsumerRegistry> configure)
     {
         _logger.LogDebug("Registering a consumer for exchange {exchange}", exchange);
         var consumerFac = new ConsumerRegistry(_sp);
         configure.Invoke(consumerFac);
-        _endpointConsumerFactory.AddExchange(exchange, consumerFac);
+        _endpointConsumerFactory.AddExchange(exchange, consumerFac, routingKey);
         _logger.LogDebug("Registered a consumer for exchange {exchange}", exchange);
     }
 
@@ -116,7 +141,8 @@ public class ConfigurationBuilder : IConfigurationBuilder
     /// Configures the producer specific parameters
     /// </summary>
     /// <param name="configure"></param>
-    public void ConfigureProducer(Action<ProducerOptions> configure) {
+    public void ConfigureProducer(Action<ProducerOptions> configure)
+    {
         configure.Invoke(ProducerOptions);
         _logger.LogDebug("Configured producer with options - (Timeout: {timeout})", ProducerOptions.ResponseTimeout);
     }
