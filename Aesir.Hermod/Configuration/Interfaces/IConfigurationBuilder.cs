@@ -49,4 +49,15 @@ public interface IConfigurationBuilder
     void ConsumeExchange(
         ExchangeDeclaration exchange,
         Action<IConsumerRegistry> configure);
+
+    /// <summary>
+    /// Registers an <see cref="IConsumer{T}"/> to be used for the specified exchange.
+    /// </summary>
+    /// <param name="exchange"></param>
+    /// <param name="routingKey"></param>
+    /// <param name="configure"></param>
+    void ConsumeExchange(
+        ExchangeDeclaration exchange,
+        string? routingKey,
+        Action<IConsumerRegistry> configure);
 }
