@@ -29,6 +29,9 @@ internal static class MessagingBusExtensions
         messageBus.GetChannel()
             .ExchangeDeclare(exchange.Exchange, exchange.Type, exchange.Durable, exchange.AutoDelete);
         var queueName = messageBus.GetChannel().QueueDeclare().QueueName;
+        
+        routingKey ??= string.Empty;
+        
         messageBus.GetChannel().QueueBind(queueName, exchange.Exchange, routingKey);
         messageBus.RegisterConsumer(queueName, action, routingKey);
     }
