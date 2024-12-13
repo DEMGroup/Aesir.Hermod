@@ -54,7 +54,8 @@ internal class EndpointConsumerFactory : IEndpointConsumerFactory
             .FirstOrDefault(x =>
                 x.Name == queue &&
                 x.EndpointType == type &&
-                (routingKey is null || x.RoutingKey == routingKey));
+                (string.IsNullOrEmpty(routingKey) || x.RoutingKey == routingKey)
+            );
 
     public IEnumerable<QueueDeclaration> GetQueues()
         => _queueConsumers.Select(x => x.Declaration);
