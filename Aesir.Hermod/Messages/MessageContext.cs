@@ -11,8 +11,13 @@ internal class MessageContext<T> : IMessageContext<T> where T : IMessage
     internal string CorrelationId { get; set; }
     internal string ReplyTo { get; set; }
     internal bool HasReplied { get; private set; }
-    private readonly IMessageProducer _producer;
-    public MessageContext(T message, BasicDeliverEventArgs ea, IMessageProducer producer)
+    private readonly IInternalMessageProducer _producer;
+
+    public MessageContext(
+        T message,
+        BasicDeliverEventArgs ea,
+        IInternalMessageProducer producer
+    )
     {
         Message = message;
         CorrelationId = ea.BasicProperties.CorrelationId;
@@ -23,7 +28,8 @@ internal class MessageContext<T> : IMessageContext<T> where T : IMessage
     public void Respond<TResult>(TResult message) where TResult : IMessageResult<T>
     {
         if (HasReplied)
-            throw new MessagePublishException($"You cannot respond to the same {nameof(MessageContext<IMessage>)} more than once.");
+            throw new MessagePublishException(
+                $"You cannot respond to the same {nameof(MessageContext<IMessage>)} more than once.");
 
         _producer.Respond<TResult, T>(message, CorrelationId, ReplyTo);
         HasReplied = true;

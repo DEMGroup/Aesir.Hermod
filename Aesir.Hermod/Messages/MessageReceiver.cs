@@ -19,12 +19,12 @@ internal class MessageReceiver : IMessageReceiver
     private readonly IMessagingBus _messagingBus;
     private readonly IEndpointConsumerFactory _consumerFactory;
     private readonly IServiceProvider _serviceProvider;
-    private readonly IMessageProducer _producer;
+    private readonly IInternalMessageProducer _producer;
     private readonly ILogger<object> _logger;
 
     public MessageReceiver(IEndpointConsumerFactory consumers, IServiceProvider sp)
     {
-        _producer = sp.GetRequiredService<IMessageProducer>();
+        _producer = sp.GetRequiredService<IInternalMessageProducer>();
         _messagingBus = sp.GetRequiredService<IMessagingBus>();
         _consumerFactory = consumers;
         _serviceProvider = sp;

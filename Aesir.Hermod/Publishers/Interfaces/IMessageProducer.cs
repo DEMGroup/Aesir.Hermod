@@ -41,21 +41,4 @@ public interface IMessageProducer
     Task<TResult?> SendWithResponseAsync<TResult, T>(
         T message,
         QueueDeclaration configure) where T : IMessage where TResult : IMessageResult<T>;
-
-    /// <summary>
-    /// Responds to a provided queue.
-    /// </summary>
-    /// <typeparam name="TResult"></typeparam>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="message"></param>
-    /// <param name="correlationId"></param>
-    /// <param name="replyTo"></param>
-    internal void Respond<TResult, T>(TResult message, string correlationId, string replyTo)
-        where T : IMessage where TResult : IMessageResult<T>;
-
-    /// <summary>
-    /// Sends an empty message to act as a receipt of a message being processed.
-    /// </summary>
-    /// <param name="correlationId"></param>
-    internal void SendEmpty(string correlationId);
 }

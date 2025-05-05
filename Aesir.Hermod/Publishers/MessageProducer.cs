@@ -16,7 +16,7 @@ namespace Aesir.Hermod.Publishers;
 /// <summary>
 /// Contains all methods for sending messages
 /// </summary>
-public class MessageProducer : IMessageProducer
+public class MessageProducer : IInternalMessageProducer
 {
     private readonly string _replyQueue;
     private readonly TimeSpan _timeout;
