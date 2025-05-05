@@ -16,13 +16,13 @@ internal class MessageContext<T> : IMessageContext<T> where T : IMessage
     public MessageContext(
         T message,
         BasicDeliverEventArgs ea,
-        IInternalMessageProducer producer
+        IMessageProducer producer
     )
     {
         Message = message;
         CorrelationId = ea.BasicProperties.CorrelationId;
         ReplyTo = ea.BasicProperties.ReplyTo;
-        _producer = producer;
+        _producer = (IInternalMessageProducer)producer;
     }
 
     public void Respond<TResult>(TResult message) where TResult : IMessageResult<T>

@@ -24,7 +24,7 @@ internal class MessageReceiver : IMessageReceiver
 
     public MessageReceiver(IEndpointConsumerFactory consumers, IServiceProvider sp)
     {
-        _producer = sp.GetRequiredService<IInternalMessageProducer>();
+        _producer = (IInternalMessageProducer)sp.GetRequiredService<IMessageProducer>();
         _messagingBus = sp.GetRequiredService<IMessagingBus>();
         _consumerFactory = consumers;
         _serviceProvider = sp;
