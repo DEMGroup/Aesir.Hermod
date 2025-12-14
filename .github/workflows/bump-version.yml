@@ -23,7 +23,7 @@ jobs:
       new_version_with_v: ${{ steps.release-version.outputs.new_version_with_v }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
         with:
           node-version: 18
