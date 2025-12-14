@@ -55,7 +55,6 @@ jobs:
             -c Release \
             /p:Version=${{needs.bump-version.outputs.new_version}} \
             /p:PackageVersion=${{needs.bump-version.outputs.new_version}} \
-            --no-build \
             --no-restore
 
       - name: Test
