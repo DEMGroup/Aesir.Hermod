@@ -46,17 +46,39 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install dependencies
-        run: dotnet restore -r linux-x64 Aesir.Hermod/Aesir.Hermod.csproj
+        run: |
+          dotnet restore -r linux-x64 Aesir.Hermod/Aesir.Hermod.csproj
 
       - name: Build
-        run: dotnet build -v=q Aesir.Hermod/Aesir.Hermod.csproj --configuration Release /p:Version=${{needs.bump-version.outputs.new_version}}
+        run: |
+          dotnet build -v=q Aesir.Hermod/Aesir.Hermod.csproj \
+            -c Release \
+            /p:Version=${{needs.bump-version.outputs.new_version}} \
+            /p:PackageVersion=${{needs.bump-version.outputs.new_version}} \
+            --no-build \
+            --no-restore
 
       - name: Test
-        run: dotnet test Aesir.Hermod/Aesir.Hermod.csproj --configuration Release /p:Version=${{needs.bump-version.outputs.new_version}} --no-build
+        run: |
+          dotnet test Aesir.Hermod/Aesir.Hermod.csproj \
+            -c Release \
+            /p:Version=${{needs.bump-version.outputs.new_version}} \
+            /p:PackageVersion=${{needs.bump-version.outputs.new_version}} \
+            --no-build \
+            --no-restore
 
       # Package the build into a single nupkg
       - name: Pack
-        run: nuget pack Aesir.Hermod/Aesir.Hermod.csproj -Properties Configuration=Release -Version ${{needs.bump-version.outputs.new_version}} -OutputDirectory .  -Symbols -SymbolPackageFormat snupkg
+        run: |
+          dotnet pack \
+            Aesir.Hermod/Aesir.Hermod.csproj \
+            -o . \
+            --include-symbols \
+            -c Release \
+            /p:Version=${{needs.bump-version.outputs.new_version}} \
+            /p:PackageVersion=${{needs.bump-version.outputs.new_version}} \
+            --no-build \
+            --no-restore
 
       # Push to our repo
       - name: Push
