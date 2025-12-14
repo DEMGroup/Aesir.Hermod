@@ -21,7 +21,10 @@ internal class BusWorker : IHostedService
         sp.GetLogger<BusWorker>().LogDebug("Performed initialization of all required services.");
     }
 
-    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        await _bus.InitializeAsync(cancellationToken);
+    }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

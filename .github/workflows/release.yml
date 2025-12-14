@@ -12,11 +12,12 @@ on:
           - minor
           - major
   pull_request:
-    branch: [main]
+    branches: [main]
     types: [closed]
 
 env:
   NUGET_ENABLE_LEGACY_CSPROJ_PACK: true
+  DOTNET_VERSION: 9.x
 
 jobs:
   bump-version:
@@ -37,12 +38,12 @@ jobs:
 
     steps:
       # get the code setup the build
-      - uses: actions/checkout@v3
-      
-      - name: Setup .NET Core SDK 6.0.x
-        uses: actions/setup-dotnet@v2.1.0
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET Core SDK ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install dependencies
         run: dotnet restore -r linux-x64 Aesir.Hermod/Aesir.Hermod.csproj
@@ -72,7 +73,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Push New Tag (temp manual because actions-ecosystem/action-push-tag@v1 is broken)
         run: |
           message='${{needs.bump-version.outputs.new_version_with_v}}: Sha #${{ github.sha }}'
