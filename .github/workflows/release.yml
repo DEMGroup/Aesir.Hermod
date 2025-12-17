@@ -17,7 +17,7 @@ on:
 
 env:
   NUGET_ENABLE_LEGACY_CSPROJ_PACK: true
-  DOTNET_VERSION: 9.x
+  DOTNET_VERSION: 10.x
 
 jobs:
   bump-version:
