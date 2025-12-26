@@ -24,6 +24,7 @@ internal class BusWorker : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _bus.InitializeAsync(cancellationToken);
+        await _receiver.InitializeAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
