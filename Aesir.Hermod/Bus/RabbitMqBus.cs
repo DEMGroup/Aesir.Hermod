@@ -12,7 +12,7 @@ namespace Aesir.Hermod.Bus.Buses;
 internal class RabbitMqBus : IMessagingBus
 {
     private readonly ILogger<RabbitMqBus> _logger;
-    private IModel? _model;
+    private IChannel? _model;
     private readonly IConnectionFactory _connFac;
     private readonly ConcurrentDictionary<string, ExpectedResponse> ExpectedResponses = new();
     internal RabbitMqBus(IServiceProvider sp, IConnectionFactory connFac)
@@ -26,7 +26,7 @@ internal class RabbitMqBus : IMessagingBus
         _model = await CreateConnectionWithRetryAsync(_connFac, ct);
     }
 
-    private static async Task<IModel> CreateConnectionWithRetryAsync(IConnectionFactory connFac, CancellationToken ct)
+    private static async Task<IChannel> CreateConnectionWithRetryAsync(IConnectionFactory connFac, CancellationToken ct)
     {
         const int maxRetries = 5;
         const int delayMs = 500;
@@ -37,7 +37,8 @@ internal class RabbitMqBus : IMessagingBus
         {
             try
             {
-                return connFac.CreateConnection().CreateModel();
+                var connection = await connFac.CreateConnectionAsync(ct);
+                return await connection.CreateChannelAsync();
             }
             catch (Exception ex)
             {
@@ -49,7 +50,7 @@ internal class RabbitMqBus : IMessagingBus
         throw new Exception("Failed to establish connection after multiple attempts.", lastException);
     }
 
-    public IModel GetChannel() => _model ?? throw new InvalidOperationException("Bus not initialized.");
+    public IChannel GetChannel() => _model ?? throw new InvalidOperationException("Bus not initialized.");
 
     public ExpectedResponse? GetExpectedResponse(string correlationId)
     {

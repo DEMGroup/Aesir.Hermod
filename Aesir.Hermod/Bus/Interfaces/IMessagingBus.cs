@@ -9,7 +9,7 @@ namespace Aesir.Hermod.Bus.Interfaces;
 internal interface IMessagingBus
 {
     Task InitializeAsync(CancellationToken ct);
-    IModel GetChannel();
+    IChannel GetChannel();
     void RegisterResponseExpected(string correlationId, Action<object?> func, Type ExpectedResult);
     ExpectedResponse? GetExpectedResponse(string correlationId);
     void RemoveCorrelationCallback(string correlationId);

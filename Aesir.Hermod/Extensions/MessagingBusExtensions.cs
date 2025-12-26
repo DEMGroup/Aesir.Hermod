@@ -27,12 +27,12 @@ internal static class MessagingBusExtensions
     )
     {
         messageBus.GetChannel()
-            .ExchangeDeclare(exchange.Exchange, exchange.Type, exchange.Durable, exchange.AutoDelete);
-        var queueName = messageBus.GetChannel().QueueDeclare().QueueName;
-        
+            .ExchangeDeclareAsync(exchange.Exchange, exchange.Type, exchange.Durable, exchange.AutoDelete).GetAwaiter().GetResult();
+        var queueName = messageBus.GetChannel().QueueDeclareAsync().GetAwaiter().GetResult().QueueName;
+
         routingKey ??= string.Empty;
-        
-        messageBus.GetChannel().QueueBind(queueName, exchange.Exchange, routingKey);
+
+        messageBus.GetChannel().QueueBindAsync(queueName, exchange.Exchange, routingKey).GetAwaiter().GetResult();
         messageBus.RegisterConsumer(queueName, action, routingKey);
     }
 
@@ -53,7 +53,7 @@ internal static class MessagingBusExtensions
         Action<string?, BasicDeliverEventArgs> action
     )
     {
-        messagingBus.GetChannel().QueueDeclare(queue.Queue, queue.Durable, queue.Exclusive, queue.AutoDelete);
+        messagingBus.GetChannel().QueueDeclareAsync(queue.Queue, queue.Durable, queue.Exclusive, queue.AutoDelete).GetAwaiter().GetResult();
         messagingBus.RegisterConsumer(queue.Queue, action);
     }
 
@@ -64,8 +64,12 @@ internal static class MessagingBusExtensions
         string? routingKey = null
     )
     {
-        var consumer = new EventingBasicConsumer(messageBus.GetChannel());
-        consumer.Received += (_, e) => action(routingKey, e);
-        messageBus.GetChannel().BasicConsume(queue, true, consumer);
+        var consumer = new AsyncEventingBasicConsumer(messageBus.GetChannel());
+        consumer.ReceivedAsync += (_, e) =>
+        {
+            action(routingKey, e);
+            return Task.CompletedTask;
+        };
+        messageBus.GetChannel().BasicConsumeAsync(queue, true, consumer);
     }
 }
