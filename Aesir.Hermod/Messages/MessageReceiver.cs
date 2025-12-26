@@ -29,10 +29,14 @@ internal class MessageReceiver : IMessageReceiver
         _consumerFactory = consumers;
         _serviceProvider = sp;
         _logger = sp.GetLogger<MessageReceiver>();
+    }
 
+    public Task InitializeAsync(CancellationToken ct)
+    {
         _messagingBus.RegisterConsumer("amq.rabbitmq.reply-to", ReceiveMessage);
-        _messagingBus.RegisterExchanges(consumers.GetExchanges(), ReceiveMessage);
-        _messagingBus.RegisterQueues(consumers.GetQueues(), ReceiveMessage);
+        _messagingBus.RegisterExchanges(_consumerFactory.GetExchanges(), ReceiveMessage);
+        _messagingBus.RegisterQueues(_consumerFactory.GetQueues(), ReceiveMessage);
+        return Task.CompletedTask;
     }
 
     private void ReceiveMessage(string? routingKey, BasicDeliverEventArgs e)

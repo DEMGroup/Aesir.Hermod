@@ -2,4 +2,5 @@
 
 internal interface IMessageReceiver
 {
+    Task InitializeAsync(CancellationToken ct);
 }
