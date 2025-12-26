@@ -25,7 +25,7 @@ public class ConfigurationBuilder : IConfigurationBuilder
     private readonly EndpointConsumerFactory _endpointConsumerFactory;
     private readonly IServiceProvider _sp;
     private readonly ILogger<ConfigurationBuilder> _logger;
-    private readonly MessageProducer _producer;
+    private MessageProducer? _producer;
     internal BusOptions BusOptions { get; set; } = new();
     internal ProducerOptions ProducerOptions { get; set; } = new();
 
@@ -37,7 +37,6 @@ public class ConfigurationBuilder : IConfigurationBuilder
         _endpointConsumerFactory = new EndpointConsumerFactory();
         _sp = sp;
         _logger = sp.GetLogger<ConfigurationBuilder>();
-        _producer = new MessageProducer(sp, ProducerOptions.ResponseTimeout);
     }
 
     /// <summary>
@@ -75,10 +74,10 @@ public class ConfigurationBuilder : IConfigurationBuilder
         new MessageReceiver(_endpointConsumerFactory, sp);
 
     internal IMessageProducer ConfigureProducer(IServiceProvider sp) =>
-        _producer;
+        _producer ??= new MessageProducer(sp, ProducerOptions.ResponseTimeout);
 
     internal IInternalMessageProducer ConfigureInternalProducer(IServiceProvider sp) =>
-        _producer;
+        _producer ??= new MessageProducer(sp, ProducerOptions.ResponseTimeout);
 
     /// <summary>
     /// Registers an <see cref="IConsumer{T}"/> to be used for the specified queue.

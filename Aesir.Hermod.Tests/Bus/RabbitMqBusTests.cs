@@ -14,10 +14,10 @@ public class RabbitMqBusTests
     {
         var connFactory = new Mock<IConnectionFactory>();
         var connection = new Mock<IConnection>();
-        var model = new Mock<IModel>();
+        var channel = new Mock<IChannel>();
 
-        connection.Setup(c => c.CreateModel()).Returns(model.Object);
-        connFactory.Setup(c => c.CreateConnection()).Returns(connection.Object);
+        connection.Setup(c => c.CreateChannelAsync(It.IsAny<CreateChannelOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(channel.Object);
+        connFactory.Setup(c => c.CreateConnectionAsync(It.IsAny<CancellationToken>())).ReturnsAsync(connection.Object);
 
         var bus = new RabbitMqBus(new ServiceCollection().BuildServiceProvider(), connFactory.Object);
         return bus;

@@ -38,12 +38,13 @@ public class MessageProducer : IInternalMessageProducer
         _logger = sp.GetLogger<MessageProducer>();
     }
 
-    private IBasicProperties CreateProperties(bool isReplyTo)
+    private BasicProperties CreateProperties(bool isReplyTo)
     {
-        var props = _messagingBus.GetChannel().CreateBasicProperties();
-        props.ReplyTo = !isReplyTo ? null : _replyQueue;
-        var correlationId = Guid.NewGuid().ToString();
-        props.CorrelationId = correlationId;
+        var props = new BasicProperties
+        {
+            ReplyTo = !isReplyTo ? null : _replyQueue,
+            CorrelationId = Guid.NewGuid().ToString()
+        };
         return props;
     }
 
@@ -113,11 +114,12 @@ public class MessageProducer : IInternalMessageProducer
 
         try
         {
-            _messagingBus.GetChannel().BasicPublish(
+            _messagingBus.GetChannel().BasicPublishAsync(
                 exchange: exchange ?? "",
                 routingKey: routingKey ?? "",
+                mandatory: false,
                 basicProperties: props,
-                body: msgBytes);
+                body: msgBytes).GetAwaiter().GetResult();
         }
         catch(Exception ex)
         {
@@ -132,12 +134,12 @@ public class MessageProducer : IInternalMessageProducer
     private void DeclareExchange(ExchangeDeclaration? exchangeDeclaration)
     {
         if (exchangeDeclaration is null) throw new Exception("Attempted to send message to an undeclared exchange.");
-        _messagingBus.GetChannel().ExchangeDeclare(
+        _messagingBus.GetChannel().ExchangeDeclareAsync(
             exchangeDeclaration.Exchange,
             exchangeDeclaration.Type,
             exchangeDeclaration.Durable,
             exchangeDeclaration.AutoDelete,
-            exchangeDeclaration.Arguments);
+            exchangeDeclaration.Arguments).GetAwaiter().GetResult();
 
         _registeredExchanges.Add(exchangeDeclaration.Exchange);
     }
@@ -145,11 +147,11 @@ public class MessageProducer : IInternalMessageProducer
     private void DeclareQueue(QueueDeclaration? queueDeclaration)
     {
         if (queueDeclaration is null) throw new Exception("Attempted to send message to an undeclared queue.");
-        _messagingBus.GetChannel().QueueDeclare(
+        _messagingBus.GetChannel().QueueDeclareAsync(
             queueDeclaration.Queue,
             queueDeclaration.Durable,
             queueDeclaration.Exclusive,
-            queueDeclaration.AutoDelete);
+            queueDeclaration.AutoDelete).GetAwaiter().GetResult();
         _registeredQueues.Add(queueDeclaration.Queue);
     }
 
@@ -167,11 +169,12 @@ public class MessageProducer : IInternalMessageProducer
         var msg = JsonSerializer.Serialize(msgWrapper);
         var msgBytes = Encoding.UTF8.GetBytes(msg);
 
-        _messagingBus.GetChannel().BasicPublish(
+        _messagingBus.GetChannel().BasicPublishAsync(
             exchange: "",
             routingKey: replyTo,
+            mandatory: false,
             basicProperties: replyProps,
-            body: msgBytes);
+            body: msgBytes).GetAwaiter().GetResult();
     }
 
     /// <inheritdoc/>
@@ -185,10 +188,11 @@ public class MessageProducer : IInternalMessageProducer
         var msgStr = JsonSerializer.Serialize(msg);
         var msgBytes = Encoding.UTF8.GetBytes(msgStr);
 
-        _messagingBus.GetChannel().BasicPublish(
+        _messagingBus.GetChannel().BasicPublishAsync(
             exchange: "",
             routingKey: _replyQueue,
+            mandatory: false,
             basicProperties: replyProps,
-            body: msgBytes);
+            body: msgBytes).GetAwaiter().GetResult();
     }
 }
